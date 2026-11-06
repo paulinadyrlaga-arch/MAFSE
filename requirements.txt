@@ -1,0 +1,7 @@
+google-genai
+numpy
+pandas
+yfinance
+pandas-ta-classic
+tenacity
+streamlit

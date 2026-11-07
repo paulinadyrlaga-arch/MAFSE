@@ -11,6 +11,7 @@ class RiskManager:
     """Calculates estimated risk limits; this module does not place orders."""
 
     REVOLUT_TARGET_RETURN = 0.045
+    MINIMUM_ROUND_TRIP_COST_BPS = 20.0
 
     def __init__(
         self,
@@ -118,10 +119,14 @@ class RiskManager:
             raise ValueError("sentiment_score musi mieścić się w zakresie -1–1.")
         if (
             not math.isfinite(round_trip_cost_bps)
-            or not 0 <= round_trip_cost_bps < 10_000
+            or not self.MINIMUM_ROUND_TRIP_COST_BPS
+            <= round_trip_cost_bps
+            < 10_000
         ):
             raise ValueError(
-                "Koszt round trip musi mieścić się w zakresie 0–10 000 bps."
+                "Koszt round trip musi wynosić co najmniej 20 bps "
+                "(10 bps przy zakupie i 10 bps przy sprzedaży) "
+                "i być niższy niż 10 000 bps."
             )
         if adx is not None and (
             isinstance(adx, bool) or not math.isfinite(adx) or not 0 <= adx <= 100
@@ -151,9 +156,13 @@ class RiskManager:
         if not isinstance(bars_per_day, int) or bars_per_day <= 0:
             raise ValueError("bars_per_day musi być dodatnią liczbą całkowitą.")
 
-        transaction_cost_fraction = round_trip_cost_bps / 10_000
+        transaction_cost_fraction = round_trip_cost_bps / 20_000
+        entry_cost_fraction = transaction_cost_fraction
+        exit_cost_fraction = transaction_cost_fraction
         target_price = purchase_price * (
-            1 + self.REVOLUT_TARGET_RETURN + transaction_cost_fraction
+            (1 + entry_cost_fraction)
+            * (1 + self.REVOLUT_TARGET_RETURN)
+            / (1 - exit_cost_fraction)
         )
         stop_loss = purchase_price - self.atr_multiplier * atr
         if stop_loss <= 0:
@@ -222,8 +231,6 @@ class RiskManager:
             probability = min(probability, 20.0)
         probability = round(max(0.0, min(100.0, probability)), 1)
         target_reached = current_price >= target_price
-        if target_reached and not is_mock:
-            probability = 100.0
         volume_kill_switch_status = (
             "unavailable"
             if session_volume_ratio is None
@@ -235,6 +242,8 @@ class RiskManager:
         hard_filters_passed = (
             adx_filter_passed and volume_kill_switch_status == "passed"
         )
+        if target_reached and not is_mock and hard_filters_passed:
+            probability = 100.0
 
         return {
             "purchase_price": purchase_price,
@@ -242,18 +251,32 @@ class RiskManager:
             "take_profit": target_price,
             "target_return_pct": self.REVOLUT_TARGET_RETURN * 100,
             "gross_target_return_pct": (
-                self.REVOLUT_TARGET_RETURN + transaction_cost_fraction
-            )
-            * 100,
+                (1 + entry_cost_fraction)
+                * (1 + self.REVOLUT_TARGET_RETURN)
+                / (1 - exit_cost_fraction)
+                - 1
+            ) * 100,
             "round_trip_cost_bps_assumption": round_trip_cost_bps,
-            "estimated_round_trip_cost_pct": transaction_cost_fraction * 100,
+            "entry_fee_bps_assumption": entry_cost_fraction * 10_000,
+            "exit_fee_bps_assumption": exit_cost_fraction * 10_000,
+            "estimated_round_trip_cost_pct": (
+                entry_cost_fraction + exit_cost_fraction
+            ) * 100,
             "net_target_return_pct": (
-                (target_price / purchase_price - 1 - transaction_cost_fraction)
-                * 100
-            ),
+                target_price
+                * (1 - exit_cost_fraction)
+                / (purchase_price * (1 + entry_cost_fraction))
+                - 1
+            ) * 100,
             "stop_loss": stop_loss,
             "estimated_net_stop_return_pct": (
-                (stop_loss / purchase_price - 1 - transaction_cost_fraction) * 100
+                (
+                    stop_loss
+                    * (1 - exit_cost_fraction)
+                    / (purchase_price * (1 + entry_cost_fraction))
+                    - 1
+                )
+                * 100
             ),
             "atr": atr,
             "atr_multiplier": self.atr_multiplier,
@@ -292,10 +315,14 @@ class RiskManager:
         """Score the five evidence-based broker filters and apply fail-closed gates."""
         if (
             not math.isfinite(round_trip_cost_bps)
-            or not 0 <= round_trip_cost_bps < 10_000
+            or not self.MINIMUM_ROUND_TRIP_COST_BPS
+            <= round_trip_cost_bps
+            < 10_000
         ):
             raise ValueError(
-                "round_trip_cost_bps musi mieścić się w zakresie 0–10 000."
+                "round_trip_cost_bps musi wynosić co najmniej 20 bps "
+                "(10 bps przy zakupie i 10 bps przy sprzedaży) "
+                "i być niższy niż 10 000 bps."
             )
 
         indicators = research.get("indicators")
@@ -341,14 +368,21 @@ class RiskManager:
         )
         adx_blocked = not adx_available or adx_value < 20
 
-        target_price = price * (1 + self.REVOLUT_TARGET_RETURN)
-        cost_fraction = round_trip_cost_bps / 10_000
-        target_price += price * cost_fraction
-        stop_distance = self.atr_multiplier * atr
-        risk_amount = stop_distance + price * round_trip_cost_bps / 10_000
-        reward_amount = (
-            target_price - price - price * round_trip_cost_bps / 10_000
+        cost_fraction = round_trip_cost_bps / 20_000
+        entry_cost_fraction = cost_fraction
+        exit_cost_fraction = cost_fraction
+        target_price = price * (1 + entry_cost_fraction) * (
+            1 + self.REVOLUT_TARGET_RETURN
+        ) / (
+            1 - exit_cost_fraction
         )
+        stop_distance = self.atr_multiplier * atr
+        stop_price = price - stop_distance
+        if stop_price <= 0:
+            raise ValueError("Stop-Loss oparty na ATR wypada przy cenie zero lub niżej.")
+        entry_amount = price * (1 + entry_cost_fraction)
+        risk_amount = entry_amount - stop_price * (1 - exit_cost_fraction)
+        reward_amount = target_price * (1 - exit_cost_fraction) - entry_amount
         reward_risk_ratio = max(0.0, reward_amount) / risk_amount
         risk_reward_points = 15.0 if reward_risk_ratio >= 2.0 else 0.0
         cost_points = max(0.0, 10.0 * (1 - round_trip_cost_bps / 100))
@@ -491,14 +525,18 @@ class RiskManager:
                     "risk_reward_ratio_net": round(reward_risk_ratio, 2),
                     "risk_reward_points": risk_reward_points,
                     "round_trip_cost_bps_assumption": round_trip_cost_bps,
+                    "entry_fee_bps_assumption": entry_cost_fraction * 10_000,
+                    "exit_fee_bps_assumption": exit_cost_fraction * 10_000,
                     "net_target_return_pct": self.REVOLUT_TARGET_RETURN * 100,
                     "gross_target_return_pct": (
-                        self.REVOLUT_TARGET_RETURN + cost_fraction
-                    )
-                    * 100,
+                        target_price / price - 1
+                    ) * 100,
                     "gross_target_price": target_price,
                     "cost_points": round(cost_points, 1),
-                    "cost_note": "Koszt jest założeniem użytkownika, nie feedem spread/prowizji brokera.",
+                    "cost_note": (
+                        "Uwzględniono co najmniej po 10 bps prowizji przy zakupie "
+                        "i sprzedaży; rzeczywisty spread może zwiększyć koszt."
+                    ),
                 },
             },
             "target_resistance_order_book": {

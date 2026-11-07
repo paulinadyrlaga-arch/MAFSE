@@ -19,7 +19,6 @@ import numpy as np
 import pandas as pd
 import pandas_ta_classic as ta
 import yfinance as yf
-from yfinance.exceptions import YFException
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,6 +28,7 @@ _YFINANCE_DATA_LOCK = threading.RLock()
 class ResearchAgent:
     """Fetch OHLCV candles, technical indicators, and a preliminary signal."""
 
+    MINIMUM_ROUND_TRIP_COST_BPS = 20.0
     _TRUSTED_NEWS_DOMAINS = {
         "apnews.com",
         "bbc.com",
@@ -95,12 +95,20 @@ class ResearchAgent:
     }
     NET_TARGET_RETURN = 0.045
 
-    def __init__(self, timeout: float = 4.0) -> None:
+    def __init__(
+        self,
+        timeout: float = 4.0,
+        *,
+        allow_mock_data: bool = False,
+    ) -> None:
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("Timeout musi być skończoną wartością większą od zera.")
         self.timeout = min(timeout, 4.0)
+        self.allow_mock_data = allow_mock_data
         self._fundamentals_cache: dict[str, dict[str, Any]] = {}
         self._news_cache: dict[str, dict[str, Any]] = {}
+        self._analyst_cache: dict[str, dict[str, Any]] = {}
+        self._macro_calendar_cache: dict[str, dict[str, Any]] = {}
         self._frame_cache: dict[tuple[str, str, int], pd.DataFrame] = {}
 
     def analyze(
@@ -111,44 +119,92 @@ class ResearchAgent:
         *,
         include_qualitative: bool = True,
         round_trip_cost_bps: float = 40.0,
+        allow_mock_data: bool | None = None,
+        as_of: datetime | None = None,
     ) -> dict[str, Any]:
         """Return OHLCV, indicators, and optionally slower qualitative inputs."""
         ticker_symbol = self._normalize_symbol(symbol)
         if timeframe not in self.INTERVALS:
             raise ValueError(f"Nieobsługiwany interwał yfinance: {timeframe}")
-        if not 35 <= limit <= 1000:
-            raise ValueError("Liczba świec musi mieścić się w zakresie 35–1000.")
+        if not 35 <= limit <= 10_000:
+            raise ValueError("Liczba świec musi mieścić się w zakresie 35–10000.")
         if (
             not math.isfinite(round_trip_cost_bps)
-            or not 0 <= round_trip_cost_bps < 10_000
+            or not self.MINIMUM_ROUND_TRIP_COST_BPS
+            <= round_trip_cost_bps
+            < 10_000
         ):
             raise ValueError(
-                "Koszt round trip musi mieścić się w zakresie 0–10 000 bps."
+                "Koszt round trip musi wynosić co najmniej 20 bps "
+                "(10 bps przy zakupie i 10 bps przy sprzedaży) "
+                "i być niższy niż 10 000 bps."
             )
 
         source_interval, resample_rule = self.INTERVALS[timeframe]
+        include_extended_hours = (
+            timeframe in {"5m", "15m"} and not ticker_symbol.endswith("-USD")
+        )
+        snapshot = None
+        if as_of is not None:
+            snapshot = pd.Timestamp(as_of)
+            if snapshot.tzinfo is None:
+                raise ValueError("as_of musi zawierać informację o strefie czasowej.")
+            snapshot = snapshot.tz_convert("UTC")
         fallback_reason: str | None = None
         try:
-            period = (
-                "60d"
-                if source_interval.endswith(("m", "h"))
-                else "5y"
-                if source_interval == "1d"
-                else "max"
-            )
-            history = yf.Ticker(ticker_symbol).history(
-                period=period,
-                interval=source_interval,
-                auto_adjust=False,
-                actions=False,
-                timeout=self.timeout,
-            )
+            ticker = yf.Ticker(ticker_symbol)
+            if snapshot is None:
+                period = (
+                    "60d"
+                    if source_interval.endswith(("m", "h"))
+                    else "5y"
+                    if source_interval == "1d"
+                    else "max"
+                )
+                history = ticker.history(
+                    period=period,
+                    interval=source_interval,
+                    auto_adjust=False,
+                    actions=False,
+                    prepost=include_extended_hours,
+                    timeout=self.timeout,
+                )
+            else:
+                lookback = (
+                    timedelta(days=59)
+                    if source_interval.endswith(("m", "h"))
+                    else timedelta(days=365 * 5 + 2)
+                    if source_interval == "1d"
+                    else timedelta(days=365 * 10)
+                )
+                history = ticker.history(
+                    start=(snapshot - lookback).to_pydatetime(),
+                    end=(snapshot + timedelta(seconds=1)).to_pydatetime(),
+                    interval=source_interval,
+                    auto_adjust=False,
+                    actions=False,
+                    prepost=include_extended_hours,
+                    timeout=self.timeout,
+                )
             if not isinstance(history, pd.DataFrame) or history.empty:
                 raise RuntimeError(
                     f"yfinance nie zwróciło danych dla {ticker_symbol} "
                     f"(interwał {source_interval})."
                 )
             frame = self._prepare_history(history)
+            if snapshot is not None:
+                frame = self._filter_historical_frame(
+                    frame,
+                    snapshot,
+                    source_interval,
+                    timeframe,
+                    resample_rule,
+                )
+            elif source_interval.endswith(("m", "h")):
+                frame = self._filter_incomplete_live_frame(
+                    frame,
+                    source_interval,
+                )
             if resample_rule is not None:
                 frame = self._resample(frame, resample_rule)
             if len(frame) < 35:
@@ -156,10 +212,18 @@ class ResearchAgent:
                     f"yfinance zwróciło tylko {len(frame)} świec dla {ticker_symbol} "
                     f"({timeframe}); potrzeba co najmniej 35."
                 )
-        except (OSError, RuntimeError, ValueError, YFException) as error:
-            frame = self._fallback_frame(ticker_symbol, timeframe, limit, error)
-            fallback_reason = str(error)
         except Exception as error:
+            use_mock_data = (
+                self.allow_mock_data
+                if allow_mock_data is None
+                else allow_mock_data
+            )
+            if not use_mock_data:
+                raise RuntimeError(
+                    f"Nie udało się pobrać rzeczywistych danych Yahoo Finance "
+                    f"dla {ticker_symbol} ({timeframe}): "
+                    f"{type(error).__name__}: {error}"
+                ) from error
             frame = self._fallback_frame(ticker_symbol, timeframe, limit, error)
             fallback_reason = f"{type(error).__name__}: {error}"
 
@@ -243,6 +307,25 @@ class ResearchAgent:
         else:
             fundamentals = quality["fundamentals"]
             news = quality["news"]
+        analyst_consensus = (
+            quality["analyst_consensus"]
+            if quality is not None
+            else {
+                "status": "deferred" if not include_qualitative else "unavailable",
+                "counts": {},
+                "consensus_score": None,
+                "recommendation": "unavailable",
+            }
+        )
+        macro_calendar = (
+            quality["macro_calendar"]
+            if quality is not None
+            else {
+                "status": "deferred" if not include_qualitative else "unavailable",
+                "upcoming_events": [],
+                "source": "Forex Factory calendar feed",
+            }
+        )
 
         candles = [
             self._serialize_candle(timestamp, row)
@@ -271,8 +354,13 @@ class ResearchAgent:
         )
         if quality is not None:
             broker_inputs["market_regime"] = quality["market_regime"]
-            broker_inputs["event_risk"] = quality["event_risk"]
+            broker_inputs["event_risk"] = self._combined_event_risk(
+                quality["event_risk"],
+                quality["macro_calendar"],
+            )
             broker_inputs["order_book"] = quality["order_book"]
+            broker_inputs["analyst_consensus"] = quality["analyst_consensus"]
+            broker_inputs["macro_calendar"] = quality["macro_calendar"]
 
         return {
             "exchange": (
@@ -285,6 +373,11 @@ class ResearchAgent:
             "is_mock": fallback_reason is not None,
             "fallback_reason": fallback_reason,
             "timestamp": self._serialize_timestamp(latest_timestamp),
+            "as_of": (
+                self._serialize_timestamp(snapshot)
+                if snapshot is not None
+                else None
+            ),
             "price": float(latest["Close"]),
             "indicators": indicators,
             "signal": signal,
@@ -295,9 +388,76 @@ class ResearchAgent:
             ),
             "fundamentals": fundamentals,
             "news": news,
+            "analyst_consensus": analyst_consensus,
+            "macro_calendar": macro_calendar,
             "broker_inputs": broker_inputs,
             "candles": candles,
         }
+
+    @staticmethod
+    def _filter_historical_frame(
+        frame: pd.DataFrame,
+        snapshot: pd.Timestamp,
+        source_interval: str,
+        timeframe: str,
+        resample_rule: str | None,
+    ) -> pd.DataFrame:
+        """Keep only source bars and resampled candles completed by the snapshot."""
+        index = frame.index
+        localized_snapshot = (
+            snapshot.tz_convert(index.tz)
+            if index.tz is not None
+            else snapshot.tz_localize(None)
+        )
+        if index.tz is None:
+            index = index.tz_localize("UTC")
+            localized_snapshot = snapshot
+
+        if source_interval.endswith(("m", "h")):
+            unit = source_interval[-1]
+            length = int(source_interval[:-1])
+            duration = (
+                timedelta(minutes=length)
+                if unit == "m"
+                else timedelta(hours=length)
+            )
+            frame = frame.loc[index + duration <= localized_snapshot]
+        else:
+            # Daily-and-longer Yahoo bars can include a partial snapshot-day bar.
+            frame = frame.loc[index.normalize() < localized_snapshot.normalize()]
+
+        if resample_rule is not None and not frame.empty:
+            duration_by_timeframe = {
+                "2h": timedelta(hours=2),
+                "4h": timedelta(hours=4),
+                "6h": timedelta(hours=6),
+                "8h": timedelta(hours=8),
+                "12h": timedelta(hours=12),
+                "3d": timedelta(days=3),
+            }
+            bucket_duration = duration_by_timeframe.get(timeframe)
+            if bucket_duration is not None:
+                frame = frame.loc[
+                    frame.index + bucket_duration <= localized_snapshot
+                ]
+        return frame
+
+    @staticmethod
+    def _filter_incomplete_live_frame(
+        frame: pd.DataFrame,
+        source_interval: str,
+    ) -> pd.DataFrame:
+        unit = source_interval[-1]
+        length = int(source_interval[:-1])
+        duration = (
+            timedelta(minutes=length)
+            if unit == "m"
+            else timedelta(hours=length)
+        )
+        now = pd.Timestamp.now(tz="UTC")
+        index = frame.index
+        comparison_now = now.tz_convert(index.tz) if index.tz is not None else now.tz_localize(None)
+        return frame.loc[index + duration <= comparison_now]
 
     def _with_yfinance_timeout(
         self,
@@ -363,6 +523,8 @@ class ResearchAgent:
         )
         research["fundamentals"] = outputs["fundamentals"]
         research["news"] = outputs["news"]
+        research["analyst_consensus"] = outputs["analyst_consensus"]
+        research["macro_calendar"] = outputs["macro_calendar"]
         latest = frame.iloc[-1]
         research["broker_inputs"] = self._build_broker_inputs(
             frame,
@@ -371,8 +533,15 @@ class ResearchAgent:
             research["signal"],
         )
         research["broker_inputs"]["market_regime"] = outputs["market_regime"]
-        research["broker_inputs"]["event_risk"] = outputs["event_risk"]
+        research["broker_inputs"]["event_risk"] = self._combined_event_risk(
+            outputs["event_risk"],
+            outputs["macro_calendar"],
+        )
         research["broker_inputs"]["order_book"] = outputs["order_book"]
+        research["broker_inputs"]["analyst_consensus"] = outputs[
+            "analyst_consensus"
+        ]
+        research["broker_inputs"]["macro_calendar"] = outputs["macro_calendar"]
         return research
 
     def _fetch_qualitative_bundle(
@@ -383,11 +552,19 @@ class ResearchAgent:
         include_fundamentals: bool = True,
         round_trip_cost_bps: float = 40.0,
     ) -> dict[str, dict[str, Any]]:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
             jobs = {
                 "news": executor.submit(self._cached_news, symbol),
                 "market_regime": executor.submit(self._fetch_market_regime, symbol),
                 "event_risk": executor.submit(self._fetch_event_risk, symbol),
+                "macro_calendar": executor.submit(
+                    self._cached_macro_calendar,
+                    symbol,
+                ),
+                "analyst_consensus": executor.submit(
+                    self._cached_analyst_consensus,
+                    symbol,
+                ),
                 "order_book": executor.submit(
                     self._fetch_order_book,
                     symbol,
@@ -451,7 +628,66 @@ class ResearchAgent:
                 "upcoming_events": [],
                 "reason": reason,
             }
+        if name == "analyst_consensus":
+            return {
+                "status": "unavailable",
+                "error": reason,
+                "counts": {},
+                "consensus_score": None,
+                "recommendation": "unavailable",
+            }
+        if name == "macro_calendar":
+            return {
+                "status": "unavailable",
+                "error": reason,
+                "upcoming_events": [],
+                "source": "Forex Factory calendar feed",
+            }
         return {"status": "unavailable", "reason": reason}
+
+    @staticmethod
+    def _combined_event_risk(
+        corporate: dict[str, Any],
+        macro: dict[str, Any],
+    ) -> dict[str, Any]:
+        corporate_events = corporate.get("upcoming_events", [])
+        macro_events = macro.get("upcoming_events", [])
+        events = [
+            event
+            for event in (*corporate_events, *macro_events)
+            if isinstance(event, dict)
+        ]
+        macro_status = (
+            "available"
+            if macro.get("status") in {"clear", "high_risk"}
+            else "unavailable"
+        )
+        corporate_status = corporate.get("corporate_calendar_status")
+        status = (
+            "high_risk"
+            if events
+            else "clear"
+            if macro_status == "available"
+            and corporate_status in {"available", "not_applicable"}
+            else "incomplete"
+        )
+        return {
+            **corporate,
+            "status": status,
+            "macro_calendar_status": macro_status,
+            "upcoming_events": events,
+            "macro_calendar": macro,
+        }
+
+    def _cached_analyst_consensus(self, symbol: str) -> dict[str, Any]:
+        if symbol not in self._analyst_cache:
+            self._analyst_cache[symbol] = self._fetch_analyst_consensus(symbol)
+        return self._analyst_cache[symbol]
+
+    def _cached_macro_calendar(self, symbol: str) -> dict[str, Any]:
+        if symbol not in self._macro_calendar_cache:
+            self._macro_calendar_cache[symbol] = self._fetch_macro_calendar(symbol)
+        return self._macro_calendar_cache[symbol]
 
     def _build_broker_inputs(
         self,
@@ -604,10 +840,14 @@ class ResearchAgent:
             raise ValueError("Cena do oceny arkusza musi być dodatnia i skończona.")
         if (
             not math.isfinite(round_trip_cost_bps)
-            or not 0 <= round_trip_cost_bps < 10_000
+            or not self.MINIMUM_ROUND_TRIP_COST_BPS
+            <= round_trip_cost_bps
+            < 10_000
         ):
             raise ValueError(
-                "Koszt round trip musi mieścić się w zakresie 0–10 000 bps."
+                "Koszt round trip musi wynosić co najmniej 20 bps "
+                "(10 bps przy zakupie i 10 bps przy sprzedaży) "
+                "i być niższy niż 10 000 bps."
             )
         binance_symbol = f"{base}USDT"
         url = (
@@ -630,8 +870,12 @@ class ResearchAgent:
             return {"status": "unavailable", "reason": "Nieprawidłowy format danych order book."}
         bids = depth.get("bids", [])
         asks = depth.get("asks", [])
-        target_price = current_price * (
-            1.045 + round_trip_cost_bps / 10_000
+        cost_fraction = round_trip_cost_bps / 20_000
+        target_price = (
+            current_price
+            * (1 + cost_fraction)
+            * 1.045
+            / (1 - cost_fraction)
         )
         downside_boundary = current_price * 0.955
         try:
@@ -710,7 +954,8 @@ class ResearchAgent:
             ),
             "note": (
                 "Notional ofert sprzedaży przed celem brutto pokrywającym "
-                "cel netto +4,5% i szacowane koszty, zestawiony z "
+                "cel netto +4,5% po uwzględnieniu szacowanego kosztu "
+                "round trip, zestawiony z "
                 "notionalem bidów w pasie ±4,5%; migawka Binance Spot nie "
                 "obejmuje arkusza Yahoo Finance ani Revoluta. Cena referencyjna "
                 "pochodzi z Yahoo w USD, a arkusz Binance jest kwotowany w USDT."
@@ -764,11 +1009,11 @@ class ResearchAgent:
                     symbol,
                     lambda ticker: ticker.calendar,
                 )
-                earnings_dates = (
-                    calendar.get("Earnings Date", [])
-                    if isinstance(calendar, dict)
-                    else []
-                )
+                if not isinstance(calendar, dict):
+                    raise RuntimeError(
+                        "Yahoo Finance nie zwróciło poprawnego kalendarza spółki."
+                    )
+                earnings_dates = calendar.get("Earnings Date", [])
                 if not isinstance(earnings_dates, (list, tuple)):
                     earnings_dates = [earnings_dates]
                 corporate_calendar_status = "available"
@@ -791,7 +1036,13 @@ class ResearchAgent:
                 _LOGGER.warning("Nie udało się pobrać kalendarza %s: %s", symbol, error)
                 corporate_calendar_status = "unavailable"
         return {
-            "status": "high_risk" if upcoming_events else "incomplete",
+            "status": (
+                "high_risk"
+                if upcoming_events
+                else "clear"
+                if corporate_calendar_status in {"available", "not_applicable"}
+                else "incomplete"
+            ),
             "corporate_calendar_status": corporate_calendar_status,
             "macro_calendar_status": "unavailable",
             "upcoming_events": upcoming_events,
@@ -801,6 +1052,129 @@ class ResearchAgent:
                 else "Brak kompletnego, wiarygodnego kalendarza makro dla horyzontu 1–3 dni."
             ),
         }
+
+    def _fetch_macro_calendar(self, symbol: str) -> dict[str, Any]:
+        """Read high-impact macro events from the public Forex Factory feed."""
+        now = datetime.now(timezone.utc)
+        horizon_end = now + timedelta(days=3)
+        sunday = now.date() - timedelta(days=(now.weekday() + 1) % 7)
+        saturday = sunday + timedelta(days=6)
+        coverage_complete = horizon_end.date() <= saturday
+
+        request = urllib.request.Request(
+            "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+            headers={"User-Agent": "MAFSE market research/1.0"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                payload = json.loads(response.read())
+        except (OSError, json.JSONDecodeError, urllib.error.URLError) as error:
+            return {
+                "status": "unavailable",
+                "upcoming_events": [],
+                "source": "Forex Factory calendar feed",
+                "reason": f"{type(error).__name__}: {error}",
+            }
+
+        if not isinstance(payload, list):
+            return {
+                "status": "unavailable",
+                "upcoming_events": [],
+                "source": "Forex Factory calendar feed",
+                "reason": "Nieprawidłowy format kalendarza.",
+            }
+        relevant_currencies = self._relevant_macro_currencies(symbol)
+        high_impact_terms = (
+            "cpi",
+            "consumer price",
+            "fomc",
+            "federal funds",
+            "fed interest rate",
+            "non-farm",
+            "nonfarm",
+            "payroll",
+            "pce",
+            "gross domestic product",
+            "gdp",
+        )
+        events: list[dict[str, str]] = []
+        valid_current_week_entries = 0
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            event_date = item.get("date")
+            try:
+                stamp = datetime.fromisoformat(
+                    str(event_date).replace("Z", "+00:00")
+                )
+                if stamp.tzinfo is None:
+                    stamp = stamp.replace(tzinfo=timezone.utc)
+                stamp = stamp.astimezone(timezone.utc)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            country = str(item.get("country", "")).upper()
+            title = str(item.get("title", "")).strip()
+            impact = str(item.get("impact", "")).casefold()
+            if sunday <= stamp.date() <= saturday and country and title:
+                valid_current_week_entries += 1
+            is_high_impact = impact == "high" or any(
+                term in title.casefold() for term in high_impact_terms
+            )
+            if (
+                country in relevant_currencies
+                and is_high_impact
+                and now <= stamp <= horizon_end
+            ):
+                events.append(
+                    {
+                        "title": title,
+                        "country": country,
+                        "date": stamp.isoformat(),
+                        "impact": impact or "high",
+                        "source": "Forex Factory calendar feed",
+                    }
+                )
+        return {
+            "status": (
+                "high_risk"
+                if events
+                else "unavailable"
+                if valid_current_week_entries == 0
+                else "clear"
+                if coverage_complete
+                else "incomplete"
+            ),
+            "upcoming_events": events,
+            "source": "Forex Factory calendar feed",
+            "coverage_through": saturday.isoformat(),
+            "valid_week_entries": valid_current_week_entries,
+            "reason": (
+                None
+                if coverage_complete and valid_current_week_entries > 0
+                else "Feed nie zawiera poprawnych wpisów dla bieżącego tygodnia."
+                if valid_current_week_entries == 0
+                else "Feed obejmuje bieżący tydzień, nie cały horyzont 1–3 dni."
+            ),
+        }
+
+    @staticmethod
+    def _relevant_macro_currencies(symbol: str) -> set[str]:
+        if symbol.endswith("-USD"):
+            return {"USD"}
+        suffix = symbol.rpartition(".")[2]
+        return {
+            "L": {"GBP"},
+            "AS": {"EUR"},
+            "DE": {"EUR"},
+            "PA": {"EUR"},
+            "MI": {"EUR"},
+            "BR": {"EUR"},
+            "HE": {"EUR"},
+            "SW": {"CHF"},
+            "CO": {"DKK"},
+            "OL": {"NOK"},
+            "ST": {"SEK"},
+        }.get(suffix, {"USD"})
 
     def _fetch_news(self, symbol: str) -> dict[str, Any]:
         """Return recent headlines corroborated by two trusted, distinct outlets."""
@@ -940,6 +1314,106 @@ class ResearchAgent:
                 }
             ),
             "verification_method": self._news_verification_method(),
+        }
+
+    def _fetch_analyst_consensus(self, symbol: str) -> dict[str, Any]:
+        """Return Yahoo Finance's current analyst recommendation distribution."""
+        def fetch_summary(ticker: yf.Ticker) -> Any:
+            getter = getattr(ticker, "get_recommendations_summary", None)
+            return getter() if callable(getter) else None
+
+        try:
+            recommendations = self._with_yfinance_timeout(
+                symbol,
+                fetch_summary,
+            )
+        except Exception as error:
+            _LOGGER.warning(
+                "Nie udało się pobrać konsensusu analityków dla %s: %s",
+                symbol,
+                error,
+            )
+            return {
+                "status": "unavailable",
+                "error": f"{type(error).__name__}: {error}",
+                "counts": {},
+                "consensus_score": None,
+                "recommendation": "unavailable",
+            }
+
+        if (
+            not isinstance(recommendations, pd.DataFrame)
+            or recommendations.empty
+        ):
+            return {
+                "status": "not_available",
+                "counts": {},
+                "consensus_score": None,
+                "recommendation": "not_available",
+            }
+
+        table = recommendations
+        if "period" in table.columns:
+            current_period = table.loc[
+                table["period"].astype(str).str.casefold().isin(
+                    {"0m", "current", "now"}
+                )
+            ]
+            table = current_period if not current_period.empty else table.iloc[:1]
+        elif table.index.name and table.index.name.casefold() == "period":
+            current_period = table.loc[
+                table.index.astype(str).str.casefold().isin(
+                    {"0m", "current", "now"}
+                )
+            ]
+            table = current_period if not current_period.empty else table.iloc[:1]
+        else:
+            table = table.iloc[:1]
+
+        latest = table.iloc[0]
+        counts: dict[str, int] = {}
+        for column in ("strongBuy", "buy", "hold", "sell", "strongSell"):
+            value = latest.get(column)
+            try:
+                count = int(value)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if count >= 0 and not pd.isna(value):
+                counts[column] = count
+        total = sum(counts.values())
+        if total <= 0:
+            return {
+                "status": "not_available",
+                "counts": counts,
+                "consensus_score": None,
+                "recommendation": "not_available",
+            }
+
+        rating_score = (
+            5 * counts.get("strongBuy", 0)
+            + 4 * counts.get("buy", 0)
+            + 3 * counts.get("hold", 0)
+            + 2 * counts.get("sell", 0)
+            + counts.get("strongSell", 0)
+        ) / total
+        recommendation = (
+            "strong_buy"
+            if rating_score >= 4.5
+            else "buy"
+            if rating_score >= 3.5
+            else "hold"
+            if rating_score >= 2.5
+            else "sell"
+            if rating_score >= 1.5
+            else "strong_sell"
+        )
+        return {
+            "status": "available",
+            "counts": counts,
+            "analyst_count": total,
+            "consensus_score": round(rating_score, 2),
+            "recommendation": recommendation,
+            "source": "Yahoo Finance analyst recommendations",
         }
 
     def _fetch_fundamentals(self, symbol: str) -> dict[str, Any]:
@@ -1263,7 +1737,7 @@ def main() -> int:
         default="1d",
         help="Interwał, np. 1h, 4h, 1d albo 1w.",
     )
-    parser.add_argument("--limit", type=int, default=100, help="Liczba świec (35–1000).")
+    parser.add_argument("--limit", type=int, default=100, help="Liczba świec (35–10000).")
     args = parser.parse_args()
 
     try:

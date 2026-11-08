@@ -38,7 +38,7 @@ Wywołania Gemini w całej aplikacji korzystają ze wspólnego retry w
 Uruchom dashboard Streamlit:
 
 ```bash
-streamlit run app.py
+python3 -m streamlit run app.py
 ```
 
 Dashboard nie uruchamia skanu automatycznie. Na głównym ekranie można wybrać
@@ -60,8 +60,9 @@ zachowując do 1000 świec do obliczeń, aby SMA50/SMA200 oraz porównanie wolum
 ukończonych świec 15m
 (Yahoo Finance z `prepost=True`, jeśli dostawca udostępnia dane przed/po sesji)
 w obu trybach. Skan przygotowawczy dla akcji USA rozpoczyna się od 14:00 czasu
-polskiego; regularne otwarcie rynku przypada zwykle o 15:30, a w tygodniach
-rozbieżności zmiany czasu o 14:30.
+polskiego; regularne otwarcie rynku przypada zwykle o 15:30 czasu CET, a w
+tygodniach rozbieżności zmiany czasu między Europą i USA o 14:30 czasu
+polskiego.
 Obie kategorie używają skali 0–150, a sygnał KUP wymaga co najmniej 110 pkt.
 Model swing obejmuje: strukturę SMA (25), RSI/MACD (20), wolumen 5/20 sesji
 (15), wsparcie (15), konsensus analityków Yahoo Finance (25),
@@ -87,10 +88,13 @@ Pełny ranking jest sortowany malejąco. Rozwijane szczegóły pokazują punktac
 każdego filaru, czas świecy, źródła jakościowe oraz wytyczne Revolut. Cel netto
 wynosi +4,5% dla swing i +2,0% dla szybkiego modelu. Take-Profit uwzględnia
 opłatę kupna i sprzedaży: `entry × (1+fee_in) × (1+target) / (1-fee_out)`.
-Stop-Loss początkowy wynosi 1,5×ATR. Plan trailingu aktywuje się po wzroście
-o 1×ATR i podąża 1,5×ATR za maksimum od wejścia; szybki model dodaje zamknięcie
-najpóźniej na koniec sesji. Dashboard jedynie wylicza i wyświetla te poziomy —
-nie monitoruje otwartej pozycji w tle ani nie składa zleceń.
+Stop-Loss początkowy wynosi 1,8×ATR (1.8×ATR). Plan trailingu aktywuje się po
+wzroście o 1×ATR i podąża 1,8×ATR za maksimum od wejścia; szybki model dodaje zamknięcie
+najpóźniej na koniec sesji. W obu kategoriach kafelek **Potencjalny zysk**
+pokazuje szacowaną stopę zwrotu netto od ceny wejścia/Trigger do Take-Profit,
+po uwzględnieniu modelowanych opłat za kupno i sprzedaż. Dashboard jedynie
+wylicza i wyświetla te poziomy — nie monitoruje otwartej pozycji w tle ani nie
+składa zleceń.
 Wyniki są heurystyczne, nie są skalibrowanym prawdopodobieństwem ani gwarancją.
 Skan używa szerokiej, konfigurowanej w kodzie puli popularnych akcji z USA i
 Europy oraz 21 głównych kryptowalut (m.in. BTC, ETH, SOL, XRP, ADA i DOGE),
@@ -102,8 +106,8 @@ Rekomendacja w wybranej kategorii wymaga wyniku co najmniej 110/150 i
 przejścia dodatkowych warunków kwalifikacyjnych. Karty i szczegółowy widok
 pokazują punktację każdego filtra i uzasadnienie. Dane rynkowe
 nie są cache’owane: każde uruchomienie skanu pobiera dane ponownie z sieci.
-W modelu ustawiono minimum 20 bps round trip: co najmniej 10 bps (0,1%) prowizji
-przy zakupie i 10 bps (0,1%) przy sprzedaży. Założenie nie jest pobraną taryfą
+W modelu ustawiono minimum 20 bps round trip, czyli 0,2% (0.2%) łącznie: co najmniej
+10 bps (0,1%) prowizji przy zakupie i 10 bps (0,1%) przy sprzedaży. Założenie nie jest pobraną taryfą
 Revoluta i nie obejmuje potencjalnego dodatkowego spreadu. Po skanie dashboard pokazuje
 pełną listę rankingową wszystkich zeskanowanych aktywów, wraz z tickerami
 z błędami pobierania oznaczonymi jako brak wyniku. Ranking jest sortowany
@@ -206,7 +210,7 @@ plan = planner.generate_plan("Przeanalizuj BTC/USD pod kątem swing tradingu")
 
 `generate_plan()` zwraca słownik z `symbol`/`ticker`, `trading_style`,
 `time_horizon`, sekcją `research` oraz `risk_management` (ryzyko 1,5%, SL
-1,5 × ATR, minimalne R:R 1:2). `main.py` przekazuje te parametry do
+1,8 × ATR, minimalne R:R 1:2). `main.py` przekazuje te parametry do
 RiskManagera. Metoda `run(AgentContext)` zwraca JSON zgodny z interfejsem MAFSE.
 Wyjście modelu jest walidowane przed przekazaniem dalej; plan nie składa
 zleceń ani nie stanowi rekomendacji inwestycyjnej.

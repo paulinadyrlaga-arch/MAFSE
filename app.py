@@ -8,7 +8,7 @@ import math
 import os
 import re
 from datetime import date, datetime, time, timezone
-from typing import Any
+from typing import Any, TypedDict
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -78,6 +78,19 @@ MULTI_DAY_CATEGORY = "📅 KATEGORIA 1: Kilkudniowe"
 SHORT_TERM_NET_TARGET_RETURN = 0.02
 SWING_NET_TARGET_RETURN = 0.045
 REVOLUT_FEE_PER_SIDE = 0.001
+ATR_STOP_MULTIPLIER = 1.8
+
+
+class TradeLevels(TypedDict):
+    entry_price: float
+    entry_fee: float
+    take_profit: float
+    potential_profit_pct: float
+    stop_loss: float
+    trailing_stop: float
+    trailing_stop_activation_price: float
+    trailing_stop_rule: str
+    net_target_return_pct: float
 
 
 def _symbols_for_market(market: str) -> tuple[str, ...]:
@@ -239,7 +252,7 @@ def _chart_data(report: dict[str, Any]) -> tuple[pd.DataFrame, bool]:
                     portfolio_capital=float(price),
                     direction=direction,
                 )
-                levels[f"SL {label} (1,5×ATR)"] = float(risk["stop_loss"])
+                levels[f"SL {label} (1,8×ATR)"] = float(risk["stop_loss"])
                 levels[f"TP {label} (R:R ≥ 1:2)"] = float(risk["take_profit"])
         except ValueError:
             LOGGER.info("Nie można wyznaczyć scenariuszowych poziomów ryzyka dla wykresu.")
@@ -387,11 +400,15 @@ def _scan_item(
         reasons.append("Skan celu +4,5% jest long-only i wymaga sygnału KUP.")
     price = float(research["price"])
     atr = float(research["indicators"]["atr_14"])
-    cost_fraction = round_trip_cost_bps / 20_000
     target_probability = score["filters"]["target_resistance_order_book"][
         "details"
     ]["target_probability_heuristic_pct"]
-    stop_loss = price - 1.5 * atr
+    levels = _trade_levels(
+        price,
+        atr,
+        SWING_NET_TARGET_RETURN,
+        round_trip_cost_bps,
+    )
     return {
         "symbol": symbol,
         "signal": signal,
@@ -419,10 +436,14 @@ def _scan_item(
         ),
         "candles": research["candles"],
         "entry_price": price,
-        "take_profit": (
-            price * (1 + cost_fraction) * 1.045 / (1 - cost_fraction)
-        ),
-        "stop_loss": stop_loss if stop_loss > 0 else None,
+        "take_profit": levels["take_profit"],
+        "stop_loss": levels["stop_loss"],
+        "potential_profit_pct": levels["potential_profit_pct"],
+        "trailing_stop": levels["trailing_stop"],
+        "trailing_stop_activation_price": levels[
+            "trailing_stop_activation_price"
+        ],
+        "trailing_stop_rule": levels["trailing_stop_rule"],
         "round_trip_cost_bps_assumption": round_trip_cost_bps,
     }
 
@@ -521,11 +542,11 @@ def _trade_levels(
     atr: float,
     net_target: float,
     round_trip_cost_bps: float,
-) -> dict[str, float]:
+) -> TradeLevels:
     fee = _per_side_fee(round_trip_cost_bps)
     fee_in = entry * fee
     take_profit = entry * (1 + fee) * (1 + net_target) / (1 - fee)
-    stop_loss = entry - 1.5 * atr
+    stop_loss = entry - ATR_STOP_MULTIPLIER * atr
     if stop_loss <= 0:
         stop_loss = entry * 0.98
     return {
@@ -541,8 +562,9 @@ def _trade_levels(
         "trailing_stop": stop_loss,
         "trailing_stop_activation_price": entry + atr,
         "trailing_stop_rule": (
-            "Początkowy SL = 1,5×ATR; po wzroście o 1×ATR stop podąża "
-            "1,5×ATR za maksimum od momentu wejścia i nie obniża się."
+            f"Początkowy SL = {ATR_STOP_MULTIPLIER:g}×ATR; po wzroście o 1×ATR "
+            f"stop podąża {ATR_STOP_MULTIPLIER:g}×ATR za maksimum od momentu "
+            "wejścia i nie obniża się."
         ),
         "net_target_return_pct": net_target * 100,
     }
@@ -2065,7 +2087,8 @@ def _render_revolut_position(result: dict[str, Any]) -> None:
         f"szacowane koszty round trip {position['estimated_round_trip_cost_pct']:.2f}% "
         f"({position['round_trip_cost_bps_assumption']:.0f} bps); "
         f"cel netto: +{position['net_target_return_pct']:.2f}%. "
-        f"SL pozostaje na 1,5×ATR; szacowany wynik netto na SL: "
+        f"SL pozostaje na {position['atr_multiplier']:g}×ATR; "
+        f"szacowany wynik netto na SL: "
         f"{position['estimated_net_stop_return_pct']:.2f}%."
     )
     st.caption(position["probability_note"])
@@ -2341,7 +2364,7 @@ def _render_category_scored_scan(scan: dict[str, Any]) -> None:
     st.caption(
         f"Cel netto: +{target_pct:.1f}% po opłatach modelowych "
         f"{scan.get('round_trip_cost_bps_assumption', 20.0):g} bps round trip "
-        "(minimum 0,1% na stronę). SL = 1,5×ATR; jeśli poziom wypada poniżej "
+        "(minimum 0,1% na stronę). SL = 1,8×ATR; jeśli poziom wypada poniżej "
         "zera, używany jest fallback 2% poniżej wejścia. "
         "Estymacja jest heurystyczna i nie gwarantuje wyniku."
     )
@@ -2529,7 +2552,7 @@ def _render_scan(scan: dict[str, Any]) -> None:
     st.caption(
         "Kwalifikacja wymaga sygnału KUP, wyniku >75/100 i zaliczenia filtrów "
         "ADX, wolumenu oraz kalendarza. TP brutto uwzględnia koszty, aby cel "
-        "netto wynosił +4,5%; SL = 1,5×ATR. Założony koszt round trip: "
+        "netto wynosił +4,5%; SL = 1,8×ATR. Założony koszt round trip: "
         f"{scan.get('round_trip_cost_bps_assumption', 40.0):g} bps "
         "(estymata, nie wycena taryfy Revolut). Skan nie składa zleceń."
     )
@@ -2842,7 +2865,7 @@ def _render_detail(
             if scenario_levels:
                 st.caption(
                     "Sygnał CZEKAJ: linie SL/TP pokazują wyłącznie hipotetyczne "
-                    "scenariusze long i short (SL = 1,5×ATR, TP = R:R 1:2); "
+                    "scenariusze long i short (SL = 1,8×ATR, TP = R:R 1:2); "
                     "nie są rekomendacją."
                 )
     except (TypeError, ValueError, KeyError) as error:

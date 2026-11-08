@@ -208,6 +208,33 @@ class BrokerFilterScoreTests(unittest.TestCase):
         self.assertEqual(position["exit_fee_bps_assumption"], 20.0)
         self.assertTrue(position["hard_filters_passed"])
 
+    def test_atr_stop_uses_two_percent_fallback_when_atr_exceeds_price(self) -> None:
+        position = self.manager.calculate_revolut_position(
+            purchase_price=100.0,
+            current_price=100.0,
+            atr=100.0,
+            technical_signal="KUP",
+            round_trip_cost_bps=20.0,
+            adx=25.0,
+            session_volume_ratio=1.0,
+        )
+        sizing = self.manager.calculate_position(
+            entry_price=100.0,
+            atr=100.0,
+            portfolio_capital=10_000.0,
+        )
+        research = _research()
+        research["indicators"]["atr_14"] = 100.0
+        score = self.manager.calculate_broker_filter_score(
+            research,
+            round_trip_cost_bps=20.0,
+        )
+
+        self.assertEqual(position["stop_loss"], 98.0)
+        self.assertEqual(sizing["stop_loss"], 98.0)
+        self.assertEqual(sizing["stop_distance"], 2.0)
+        self.assertIsInstance(score["total_points"], float)
+
     def test_revolut_position_rejects_below_minimum_round_trip_cost(self) -> None:
         with self.assertRaisesRegex(ValueError, "co najmniej 20 bps"):
             self.manager.calculate_revolut_position(

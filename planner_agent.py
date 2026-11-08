@@ -33,7 +33,7 @@ class PlannerAgent(Agent):
     _INDICATORS = {"RSI", "MACD", "ATR"}
     _RISK_ASSUMPTIONS: dict[str, float | bool] = {
         "risk_per_trade_pct": 1.5,
-        "stop_loss_atr_multiplier": 1.5,
+        "stop_loss_atr_multiplier": 1.8,
         "minimum_reward_risk_ratio": 2.0,
         "leverage_allowed": False,
     }

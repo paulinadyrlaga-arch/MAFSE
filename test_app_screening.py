@@ -89,7 +89,7 @@ class ScannerScreeningTests(unittest.TestCase):
             item["take_profit"],
             101.0 * 1.001 * 1.02 / 0.999,
         )
-        self.assertAlmostEqual(item["stop_loss"], 101.0 - 1.5 * 1.5)
+        self.assertAlmostEqual(item["stop_loss"], 101.0 - 1.8 * 1.5)
         self.assertLess(item["risk_reward_ratio"], 1.5)
         self.assertAlmostEqual(
             item["take_profit"] * 0.999 - item["entry_price"] * 1.001,
@@ -565,7 +565,7 @@ class ScannerScreeningTests(unittest.TestCase):
         self.assertTrue(qualified)
         self.assertEqual(item["entry_price"], 100.0)
         self.assertAlmostEqual(item["take_profit"], 100 * 1.002 * 1.045 / 0.998)
-        self.assertEqual(item["stop_loss"], 97.75)
+        self.assertEqual(item["stop_loss"], 97.3)
         self.assertAlmostEqual(item["net_target_return_pct"], 4.5)
 
     def test_ranking_contains_all_scanned_assets_in_score_order(self) -> None:

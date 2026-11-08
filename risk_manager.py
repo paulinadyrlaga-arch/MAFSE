@@ -16,7 +16,7 @@ class RiskManager:
     def __init__(
         self,
         risk_fraction: float = 0.015,
-        atr_multiplier: float = 1.5,
+        atr_multiplier: float = 1.8,
         reward_risk_ratio: float = 2.0,
     ) -> None:
         if not math.isfinite(risk_fraction) or not 0.01 <= risk_fraction <= 0.02:
@@ -51,11 +51,10 @@ class RiskManager:
         stop_distance = self.atr_multiplier * atr
         if direction == "long":
             stop_loss = entry_price - stop_distance
-            take_profit = entry_price + stop_distance * self.reward_risk_ratio
             if stop_loss <= 0:
-                raise ValueError(
-                    "Stop-loss dla pozycji long wypada przy cenie zero lub niżej."
-                )
+                stop_loss = entry_price * 0.98
+                stop_distance = entry_price - stop_loss
+            take_profit = entry_price + stop_distance * self.reward_risk_ratio
         else:
             stop_loss = entry_price + stop_distance
             take_profit = entry_price - stop_distance * self.reward_risk_ratio
@@ -166,7 +165,7 @@ class RiskManager:
         )
         stop_loss = purchase_price - self.atr_multiplier * atr
         if stop_loss <= 0:
-            raise ValueError("Stop-Loss oparty na ATR wypada przy cenie zero lub niżej.")
+            stop_loss = purchase_price * 0.98
 
         distance_to_target = max(0.0, target_price - current_price)
         horizon_volatility = atr * math.sqrt(horizon_days * bars_per_day)
@@ -379,7 +378,7 @@ class RiskManager:
         stop_distance = self.atr_multiplier * atr
         stop_price = price - stop_distance
         if stop_price <= 0:
-            raise ValueError("Stop-Loss oparty na ATR wypada przy cenie zero lub niżej.")
+            stop_price = price * 0.98
         entry_amount = price * (1 + entry_cost_fraction)
         risk_amount = entry_amount - stop_price * (1 - exit_cost_fraction)
         reward_amount = target_price * (1 - exit_cost_fraction) - entry_amount

@@ -2,7 +2,7 @@
 
 import unittest
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from typing import Any
 
 import app
@@ -48,6 +48,29 @@ class ScannerScreeningTests(unittest.TestCase):
         self.assertEqual(levels["stop_loss"], 98.0)
         self.assertEqual(levels["trailing_stop"], levels["stop_loss"])
         self.assertEqual(levels["trailing_stop_activation_price"], 200.0)
+
+    def test_sell_signal_has_downside_target_and_upside_stop(self) -> None:
+        levels = app._trade_levels(
+            100.0,
+            1.0,
+            app.SHORT_TERM_NET_TARGET_RETURN,
+            20.0,
+            "SPRZEDAJ",
+        )
+
+        self.assertLess(levels["take_profit"], levels["entry_price"])
+        self.assertGreater(levels["stop_loss"], levels["entry_price"])
+        self.assertAlmostEqual(levels["potential_profit_pct"], 2.0)
+        self.assertLess(
+            app._net_risk_reward(
+                levels["entry_price"],
+                levels["take_profit"],
+                levels["stop_loss"],
+                20.0,
+                "SPRZEDAJ",
+            ),
+            2.0,
+        )
 
     def test_short_term_scoring_uses_150_point_model_and_net_levels(self) -> None:
         research = _research()
@@ -197,7 +220,8 @@ class ScannerScreeningTests(unittest.TestCase):
         self.assertEqual(exactly_threshold["broker_points"], 110.0)
         self.assertEqual(exactly_threshold["signal"], "KUP")
         self.assertEqual(below_threshold["broker_points"], 109.0)
-        self.assertEqual(below_threshold["signal"], "CZEKAJ")
+        self.assertEqual(below_threshold["signal"], "KUP")
+        self.assertFalse(below_threshold["qualified"])
 
     def test_swing_scoring_adds_analyst_macro_and_trailing_risk_points(self) -> None:
         research = self._daily_research(elevated_recent_volume=True)
@@ -499,6 +523,86 @@ class ScannerScreeningTests(unittest.TestCase):
         )
         self.assertGreater(analyst_row["points"], 0.0)
 
+    def test_only_three_highest_scoring_assets_get_qualitative_details(self) -> None:
+        import copy
+
+        candles = [
+            {
+                "timestamp": (
+                    f"{(app.date(2026, 11, 6) - timedelta(days=offset)).isoformat()}"
+                    "T14:15:00+00:00"
+                ),
+                "high": 100.5 if offset == 0 else 101.0,
+                "low": 99.5,
+                "close": 100.0,
+                "open": 99.9,
+                "volume": 200.0 if offset == 0 else 100.0,
+                "macd_histogram": 1.0 if offset == 0 else 0.5,
+            }
+            for offset in range(20, -1, -1)
+        ]
+        research = _research()
+        research.update(
+            {
+                "price": 100.0,
+                "timestamp": candles[-1]["timestamp"],
+                "candles": candles,
+            }
+        )
+        research["indicators"]["macd_histogram"] = 1.0
+        enriched_symbols: list[str] = []
+
+        class FakeResearcher:
+            def analyze(self, *, symbol: str, **_: Any) -> dict[str, Any]:
+                result = copy.deepcopy(research)
+                result["symbol"] = symbol
+                return result
+
+            def enrich_qualitative(
+                self,
+                current: dict[str, Any],
+                **_: Any,
+            ) -> dict[str, Any]:
+                enriched_symbols.append(current["symbol"])
+                current["analyst_consensus"] = {
+                    "status": "available",
+                    "consensus_score": 4.0,
+                    "recommendation": "buy",
+                    "analyst_count": 6,
+                }
+                current["news"] = {
+                    "status": "verified",
+                    "verified_articles": [{"title": "Confirmed news"}],
+                    "sentiment_score": 0.5,
+                }
+                current["macro_calendar"] = {"status": "clear"}
+                return current
+
+        symbols = ("AAPL", "MSFT", "NVDA", "AMD", "TSLA")
+        with patch("app.ResearchAgent", return_value=FakeResearcher()):
+            result = app._scan_market(
+                symbols,
+                app.ROUND_TRIP_COST_BPS,
+                analysis_category=app.SHORT_TERM_CATEGORY,
+            )
+
+        self.assertEqual(len(enriched_symbols), app.TOP_RANKED_DETAIL_ASSETS)
+        self.assertEqual(result["stage_two_reviewed_assets"], 3)
+        detailed = [
+            item["symbol"]
+            for item in result["ranked_assets"]
+            if item.get("details_available")
+        ]
+        self.assertEqual(len(detailed), 3)
+        self.assertEqual(set(detailed), set(enriched_symbols))
+        self.assertTrue(
+            all(
+                "score_breakdown" not in item
+                for item in result["ranked_assets"]
+                if not item.get("details_available")
+            )
+        )
+
     def test_market_instructions_distinguish_crypto_from_us_stocks(self) -> None:
         self.assertIn("24/7", app._market_session_instruction("BTC-USD"))
         self.assertIn("15:30", app._market_session_instruction("AAPL"))
@@ -588,6 +692,68 @@ class ScannerScreeningTests(unittest.TestCase):
             ranked_assets[1]["broker_points"],
         )
 
+    def test_testnet_actions_are_limited_to_eligible_live_top_three_crypto(self) -> None:
+        scan = {
+            "mode": "live",
+            "ranked_assets": [
+                {"symbol": "BTC-USD", "signal": "KUP", "qualified": True},
+                {"symbol": "AAPL", "signal": "KUP", "qualified": True},
+                {"symbol": "ETH-USD", "signal": "SPRZEDAJ", "qualified": True},
+                {"symbol": "SOL-USD", "signal": "KUP", "qualified": True},
+            ],
+        }
+
+        candidates = app._testnet_top3_crypto_candidates(scan)
+
+        self.assertEqual(
+            [(rank, item["symbol"]) for rank, item in candidates],
+            [(1, "BTC-USD"), (3, "ETH-USD")],
+        )
+        self.assertTrue(app._is_testnet_buy_eligible(candidates[0][1]))
+        self.assertFalse(app._is_testnet_buy_eligible(candidates[1][1]))
+        self.assertEqual(
+            app._testnet_top3_crypto_candidates(
+                {**scan, "mode": "history"}
+            ),
+            [],
+        )
+        self.assertFalse(
+            app._is_testnet_buy_eligible(
+                {
+                    "symbol": "BTC-USD",
+                    "signal": "KUP",
+                    "qualified": True,
+                    "is_mock": True,
+                }
+            )
+        )
+
+    def test_futures_metrics_refresh_directly_on_each_view_render(self) -> None:
+        metrics = {
+            "balance_usdt": 100.0,
+            "unrealized_pnl_usdt": -1.5,
+            "realized_pnl_usdt": 2.25,
+        }
+        metric_columns = [Mock(), Mock(), Mock()]
+
+        with (
+            patch("app.get_futures_testnet_account_metrics", return_value=metrics) as fetch,
+            patch.object(app.st, "subheader"),
+            patch.object(app.st, "columns", return_value=metric_columns),
+            patch.object(app.st, "caption"),
+        ):
+            app._render_binance_futures_metrics()
+            app._render_binance_futures_metrics()
+
+        self.assertEqual(fetch.call_count, 2)
+        fetch.assert_called_with(
+            timeout=app.NETWORK_TIMEOUT_SECONDS,
+            realized_lookback_days=30,
+        )
+        self.assertEqual(metric_columns[0].metric.call_args.args[1], "100.0000")
+        self.assertEqual(metric_columns[1].metric.call_args.args[1], "-1.5000")
+        self.assertEqual(metric_columns[2].metric.call_args.args[1], "+2.2500")
+
     def test_ranking_keeps_assets_with_market_data_errors(self) -> None:
         research = _research()
         research.update(
@@ -658,7 +824,11 @@ class ScannerScreeningTests(unittest.TestCase):
     def test_main_displays_live_and_historical_modes(self) -> None:
         from streamlit.testing.v1 import AppTest
 
-        test_app = AppTest.from_file("app.py", default_timeout=20).run()
+        with patch(
+            "binance_testnet._create_testnet_client",
+            side_effect=RuntimeError("Testnet unavailable in UI unit test."),
+        ):
+            test_app = AppTest.from_file("app.py", default_timeout=20).run()
         self.assertFalse(test_app.exception)
         self.assertEqual(
             list(test_app.radio[1].options),
@@ -673,15 +843,23 @@ class ScannerScreeningTests(unittest.TestCase):
         )
         self.assertFalse(test_app.date_input)
 
-        test_app.radio[0].set_value(app.SHORT_TERM_CATEGORY).run()
+        with patch(
+            "binance_testnet._create_testnet_client",
+            side_effect=RuntimeError("Testnet unavailable in UI unit test."),
+        ):
+            test_app.radio[0].set_value(app.SHORT_TERM_CATEGORY).run()
         self.assertFalse(test_app.exception)
         self.assertTrue(
             any("przygotowanie do sesji USA od 14:00" in item.value for item in test_app.caption)
         )
 
-        test_app.radio[1].set_value(
-            "📜 Tryb historyczny (Backtest w wybranym momencie)"
-        ).run()
+        with patch(
+            "binance_testnet._create_testnet_client",
+            side_effect=RuntimeError("Testnet unavailable in UI unit test."),
+        ):
+            test_app.radio[1].set_value(
+                "📜 Tryb historyczny (Backtest w wybranym momencie)"
+            ).run()
         self.assertFalse(test_app.exception)
         self.assertTrue(test_app.date_input)
         self.assertTrue(

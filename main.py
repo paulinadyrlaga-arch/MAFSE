@@ -136,12 +136,17 @@ def _run_pipeline(
 
     print("4/4 Generowanie raportu...")
     report = writer.create_trade_message(research_data, risk_data)
+    if not primary["is_mock"] and report["signal"] != primary["signal"]:
+        raise RuntimeError(
+            "WriterAgent zmienił kierunek sygnału wyznaczony przez ResearchAgent."        )
     report["latest_price"] = float(latest["close"])
     report["timeframe"] = primary["timeframe"]
     report["indicators"] = primary["indicators"]
     report["candles"] = primary["candles"]
     report["broker_inputs"] = primary["broker_inputs"]
     report["is_mock"] = primary["is_mock"]
+    report["data_source"] = primary["data_source"]
+    report["signal_basis"] = primary["signal_basis"]
     return report
 
 
@@ -153,7 +158,10 @@ def _print_report(report: dict[str, Any]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Uruchom analizę rynku z agentami Gemini i Yahoo Finance."
+        description=(
+            "Uruchom analizę Gemini z danymi Binance Spot Testnet dla krypto "
+            "i Yahoo Finance dla akcji."
+        )
     )
     parser.add_argument(
         "goal",

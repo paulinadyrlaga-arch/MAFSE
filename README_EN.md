@@ -1,13 +1,15 @@
 # MAFSE
 
 MAFSE is a Python multi-agent market-analysis project with a Streamlit market
-scanner. Its agents use Gemini for planning and report generation and Yahoo
-Finance for market data. The scanner can rank equities and cryptocurrencies
-using separate multi-day (swing) and short-term (day-trading) models.
+scanner. Its agents use Gemini for planning and report generation, Yahoo
+Finance for equities, and Binance Spot Testnet for cryptocurrency market data
+and demo orders. The scanner can rank equities and cryptocurrencies using
+separate multi-day (swing) and short-term (day-trading) models.
 
 > **Important:** This project provides heuristic analysis, not financial
-> advice. It does not place or monitor orders. Prices and indicators may be
-> delayed, and no score or estimated probability guarantees a result.
+> advice. It does not monitor positions. Explicit buttons can send manual
+> market BUY orders for qualifying Top 3 crypto assets to Binance Spot Testnet
+> only; no production orders are sent and SELL signals are not executed.
 
 ## Requirements and setup
 
@@ -19,7 +21,11 @@ python3 -m pip install -r requirements.txt
 
 Set `GEMINI_API_KEY` in your environment to use Gemini-backed planning,
 qualitative reviews, and report generation. Do not put API keys in source
-files. `GEMINI_MODEL` is optional; the default is `gemini-3.8-flash`.
+files. Put Binance Testnet credentials in `.env` as
+`BINANCE_TESTNET_API_KEY` and `BINANCE_TESTNET_SECRET_KEY`. The Futures loop
+requires these credentials to have USD-M Futures Testnet access; Spot and
+Futures are separate account environments. Never use production keys.
+`GEMINI_MODEL` is optional; the default is `gemini-3.8-flash`.
 
 Run the Streamlit dashboard:
 
@@ -33,11 +39,19 @@ dashboard supports:
 
 - Live and point-in-time historical scans.
 - Multi-day swing and short-term 15-minute models.
-- A broad Yahoo Finance watchlist of popular US/EU stocks and major
-  cryptocurrencies. It is not an authoritative list of instruments available
+- A broad watchlist of popular US/EU stocks and major cryptocurrencies.
+  Equities use Yahoo Finance; crypto candles and order books use Binance Spot
+  Testnet. The watchlist is not an authoritative list of instruments available
   in Revolut; availability varies by country and account.
 - A complete descending ranking, score breakdowns, source information, and
   conditional entry/exit levels.
+- Individual manual market BUY buttons for qualifying crypto assets in the
+  Top 3, using a fixed 50 USDT quote amount per order. SELL signals are shown
+  but not executed.
+
+  The scanner computes the lightweight ranking for the full selected universe,
+  then performs qualitative enrichment and retains detailed reports, indicators,
+  and charts only for the **Top 3** highest-ranked assets.
 
 Historical intraday availability is limited by Yahoo Finance (typically around
 60 days). Historical scans exclude current news, analyst opinions, and
@@ -46,8 +60,11 @@ the application does not replace it with fabricated prices.
 
 ## Scanner models and risk
 
-Both scanner categories use a score from 0 to 150. A **KUP (BUY)** signal
-requires at least 110 points and passing additional category-specific checks:
+Both scanner categories use a score from 0 to 150. **KUP (BUY)** or
+**SPRZEDAJ (SELL)** is the trend direction; the 110-point threshold and other
+filters separately determine whether an asset qualifies for a BUY
+recommendation. A low score does not replace the directional signal with
+"WAIT":
 
 - **Multi-day (swing):** trend/SMA structure, RSI and MACD, 5/20-session
   volume, support proximity, analyst consensus, macro and market context, and
@@ -61,8 +78,8 @@ The initial Stop-Loss buffer is **1.8×ATR**. If the calculated stop would be
 zero or negative, the scanner uses its documented 2% fallback. The trailing
 stop activates after a 1×ATR move and follows the maximum price by 1.8×ATR; the
 short-term model also calls for closing by the end of the session. These are
-calculated scenarios only: the dashboard does not monitor a position or send
-orders.
+calculated scenarios only: the dashboard does not monitor a position or
+automatically execute exits.
 
 Take-Profit targets are set to +4.5% net for swing and +2.0% net for the
 short-term model. The fee assumption is at least **0.1% per side (0.2%
@@ -90,18 +107,45 @@ check, not proof that an article's claims are true. Macro-calendar or
 qualitative-data failures are surfaced and do not silently become evidence of
 low risk.
 
+## Autonomous Futures Testnet loop
+
+The dashboard refreshes Futures Testnet USDT balance, unrealized PnL, and
+realized PnL over the last 30 days without caching when the page renders.
+
+Start a separate process to scan the 21-crypto watchlist using USD-M Futures
+Testnet candles at least once per minute and send LONG market BUY orders only
+for qualified KUP signals ranked in the crypto Top 3:
+
+```bash
+python3 bot_loop.py
+```
+
+Each order uses 10 USDT of margin at 5x leverage (approximately 50 USDT
+notional, subject to exchange quantity filters). The loop sets 5x leverage for
+all analyzed crypto symbols and checks for existing positions before trading; it
+will not add to a position for the same symbol, including after a restart, and
+limits the account to at most three open positions.
+SELL signals are logged but not executed. The bot does **not** create stop-loss
+or take-profit orders and does **not** automatically close positions. Monitor
+the demo account and close positions manually.
+
+Activity and order results, excluding API credentials, are written to the
+rotating `trading.log`. `python3 bot_loop.py --once` runs one cycle and may
+place a Testnet order. Use `--interval 60` to set the pause after each cycle;
+stop the loop with Ctrl+C.
+
 ## Command-line analysis
 
-The multi-agent pipeline plans an analysis with Gemini, fetches Yahoo Finance
-OHLCV candles, calculates indicators and risk levels, then generates a Polish
-report:
+The multi-agent pipeline plans an analysis with Gemini, fetches OHLCV candles
+from Binance Spot Testnet for crypto and Yahoo Finance for equities, calculates
+indicators and risk levels, then generates a Polish report:
 
 ```bash
 python3 main.py "Analyze BTC/USDT" --capital 10000
 ```
 
-Capital is denominated in USD. Yahoo Finance data for `BTC-USD` is also in USD;
-normalizing a `*/USDT` pair to `*-USD` does not convert currencies.
+Capital is denominated in USD. Binance crypto pairs are quoted in USDT; symbol
+normalization does not perform currency conversion.
 
 Test the Gemini API connection (requires `GEMINI_API_KEY`):
 
@@ -118,19 +162,18 @@ python3 dry_run.py
 
 ## Market data and dependencies
 
-`research_agent.py` fetches OHLCV candles from Yahoo Finance and calculates
-RSI(14), MACD(12, 26, 9), ATR(14), and ADX(14) using `pandas-ta-classic`.
-The ResearchAgent's standalone market-data analysis does not require a Gemini
-key:
+`research_agent.py` fetches OHLCV candles from Binance Spot Testnet for crypto
+and Yahoo Finance for equities. It calculates RSI(14), MACD(12, 26, 9),
+ATR(14), and ADX(14) using `pandas-ta-classic`. Crypto analysis requires the
+Testnet credentials above but no Gemini key:
 
 ```bash
 python3 research_agent.py --symbol BTC-USD --timeframe 1d --limit 100
 ```
 
 `requirements.txt` includes the direct runtime dependencies used by the
-application: `google-genai`, `numpy`, `pandas`, `yfinance`,
-`pandas-ta-classic`, `tenacity`, and `streamlit`. Tests use Python's built-in
-`unittest` framework.
+application, including `python-binance` and `python-dotenv`. Tests use
+Python's built-in `unittest` framework.
 
 Run all unit tests:
 

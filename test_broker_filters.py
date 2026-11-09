@@ -434,15 +434,14 @@ class BrokerFilterScoreTests(unittest.TestCase):
         self.assertEqual(result["macro_calendar"]["status"], "deferred")
 
     def test_order_book_only_counts_levels_inside_target_corridor(self) -> None:
-        response = MagicMock()
-        response.__enter__.return_value.read.return_value = json.dumps(
-            {
-                "asks": [["104", "1"], ["104.4", "0.1"], ["106", "10"]],
-                "bids": [["100", "2"], ["95", "50"]],
-            }
-        ).encode()
-
-        with patch("research_agent.urllib.request.urlopen", return_value=response):
+        depth = {
+            "asks": [["104", "1"], ["104.4", "0.1"], ["106", "10"]],
+            "bids": [["100", "2"], ["95", "50"]],
+        }
+        with patch(
+            "research_agent.get_testnet_order_book",
+            return_value=depth,
+        ):
             order_book = ResearchAgent()._fetch_order_book("BTC-USD", 100.0)
 
         self.assertEqual(order_book["status"], "available")
@@ -501,7 +500,7 @@ class BrokerFilterScoreTests(unittest.TestCase):
         self.assertEqual(result["broker_inputs"]["event_risk"]["status"], "deferred")
         self.assertIn("adx_14", result["indicators"])
         self.assertEqual(result["indicators"]["adx_14"], 10.0)
-        self.assertEqual(result["signal"], "CZEKAJ")
+        self.assertIn(result["signal"], {"KUP", "SPRZEDAJ"})
         self.assertEqual(
             result["broker_inputs"]["liquidity"]["volume_session_status"],
             "available",
@@ -649,7 +648,7 @@ class BrokerFilterScoreTests(unittest.TestCase):
         self.assertEqual(research["timeframe"], "15m")
         self.assertEqual(research["source_interval"], "15m")
 
-    def test_crypto_intraday_analysis_does_not_request_extended_hours(self) -> None:
+    def test_crypto_intraday_analysis_uses_binance_testnet_candles(self) -> None:
         index = pd.date_range(
             "2026-11-02T13:00:00Z",
             periods=120,
@@ -667,21 +666,21 @@ class BrokerFilterScoreTests(unittest.TestCase):
             index=index,
         )
 
-        class HistoryTicker:
-            def history(self, **kwargs: object) -> pd.DataFrame:
-                self.kwargs = kwargs
-                return history
-
-        ticker = HistoryTicker()
-        with patch("research_agent.yf.Ticker", return_value=ticker):
-            ResearchAgent().analyze(
+        with patch(
+            "research_agent.get_testnet_klines",
+            return_value=history,
+        ) as get_klines:
+            research = ResearchAgent().analyze(
                 symbol="BTC-USD",
                 timeframe="15m",
                 limit=60,
                 include_qualitative=False,
             )
 
-        self.assertFalse(ticker.kwargs["prepost"])
+        get_klines.assert_called_once()
+        self.assertEqual(get_klines.call_args.args[:3], ("BTC-USD", "15m", 60))
+        self.assertEqual(research["data_source"], "binance_testnet")
+        self.assertEqual(research["exchange"], "Binance Spot Testnet")
 
 
 if __name__ == "__main__":

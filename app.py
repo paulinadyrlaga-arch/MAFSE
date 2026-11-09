@@ -12,11 +12,18 @@ from typing import Any, TypedDict
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+from requests.exceptions import RequestException
 import streamlit as st
 from google.genai.errors import APIError, ServerError
 from google import genai
 from google.genai import types
+from binance.exceptions import BinanceAPIException, BinanceRequestException
 
+from binance_testnet import (
+    get_futures_testnet_account_metrics,
+    get_spot_testnet_account_balance,
+    submit_testnet_market_buy,
+)
 from mafse import GeminiClient
 from main import _run_pipeline
 from research_agent import ResearchAgent
@@ -70,7 +77,8 @@ SHORT_TERM_CANDLE_LIMIT = 4000
 NETWORK_TIMEOUT_SECONDS = 4.0
 SCAN_MAX_WORKERS = 8
 STAGE_ONE_MINIMUM_POINTS = 40.0
-STAGE_TWO_MAX_ASSETS = 10
+STAGE_TWO_MAX_ASSETS = 3
+TOP_RANKED_DETAIL_ASSETS = 3
 QUALIFICATION_THRESHOLD = 110.0
 ROUND_TRIP_COST_BPS = 20.0
 SHORT_TERM_CATEGORY = "⚡ KATEGORIA 2: Krótkoterminowe / Szybkie"
@@ -79,6 +87,8 @@ SHORT_TERM_NET_TARGET_RETURN = 0.02
 SWING_NET_TARGET_RETURN = 0.045
 REVOLUT_FEE_PER_SIDE = 0.001
 ATR_STOP_MULTIPLIER = 1.8
+BINANCE_TESTNET_BUY_QUOTE_AMOUNT = 50.0
+FUTURES_TESTNET_REALIZED_PNL_DAYS = 30
 
 
 class TradeLevels(TypedDict):
@@ -91,6 +101,41 @@ class TradeLevels(TypedDict):
     trailing_stop_activation_price: float
     trailing_stop_rule: str
     net_target_return_pct: float
+
+
+def _direction_from_trend(
+    price: float,
+    indicators: dict[str, Any],
+    candles: list[dict[str, Any]],
+    reference_price: float | None = None,
+    momentum: float | None = None,
+) -> str:
+    if (
+        isinstance(reference_price, (int, float))
+        and math.isfinite(reference_price)
+        and price != reference_price
+    ):
+        return "KUP" if price > reference_price else "SPRZEDAJ"
+    if isinstance(momentum, (int, float)) and math.isfinite(momentum) and momentum != 0:
+        return "KUP" if momentum > 0 else "SPRZEDAJ"
+    macd = indicators.get("macd")
+    macd_signal = indicators.get("macd_signal")
+    if (
+        isinstance(macd, (int, float))
+        and isinstance(macd_signal, (int, float))
+        and macd != macd_signal
+    ):
+        return "KUP" if macd > macd_signal else "SPRZEDAJ"
+    if len(candles) > 1:
+        latest_close = candles[-1].get("close")
+        previous_close = candles[-2].get("close")
+        if (
+            isinstance(latest_close, (int, float))
+            and isinstance(previous_close, (int, float))
+            and latest_close != previous_close
+        ):
+            return "KUP" if latest_close > previous_close else "SPRZEDAJ"
+    return "KUP"
 
 
 def _symbols_for_market(market: str) -> tuple[str, ...]:
@@ -383,7 +428,14 @@ def _scan_item(
     round_trip_cost_bps: float = 40.0,
     as_of: datetime | None = None,
 ) -> dict[str, Any]:
-    signal = research["signal"]
+    price = float(research["price"])
+    indicators = research["indicators"]
+    signal = _direction_from_trend(
+        price,
+        indicators,
+        research.get("candles", []),
+        momentum=float(indicators["macd"]) - float(indicators["macd_signal"]),
+    )
     if (
         research["news"]["status"] == "deferred"
         or research["fundamentals"]["status"] == "deferred"
@@ -397,8 +449,7 @@ def _scan_item(
         confidence = WriterAgent.calculate_confidence(research, signal)
     reasons = list(score["disqualification_reasons"])
     if signal != "KUP":
-        reasons.append("Skan celu +4,5% jest long-only i wymaga sygnału KUP.")
-    price = float(research["price"])
+        reasons.append("Trend wskazuje kierunek SPRZEDAJ.")
     atr = float(research["indicators"]["atr_14"])
     target_probability = score["filters"]["target_resistance_order_book"][
         "details"
@@ -408,6 +459,7 @@ def _scan_item(
         atr,
         SWING_NET_TARGET_RETURN,
         round_trip_cost_bps,
+        signal,
     )
     return {
         "symbol": symbol,
@@ -423,6 +475,7 @@ def _scan_item(
         "broker_points": score["total_points"],
         "technical_and_risk_points": technical_and_risk_points,
         "qualified": score["qualified"],
+        "directional_target_price": levels["take_profit"],
         "disqualification_reasons": reasons,
         "news": research["news"],
         "fundamentals": research["fundamentals"],
@@ -530,8 +583,13 @@ def _net_potential_profit_pct(
     entry: float,
     take_profit: float,
     round_trip_cost_bps: float,
+    direction: str = "KUP",
 ) -> float:
     fee = _per_side_fee(round_trip_cost_bps)
+    if direction == "SPRZEDAJ":
+        proceeds = entry * (1 - fee)
+        cover_cost = take_profit * (1 + fee)
+        return (proceeds - cover_cost) / proceeds * 100 if proceeds > 0 else 0.0
     invested = entry * (1 + fee)
     proceeds = take_profit * (1 - fee)
     return (proceeds / invested - 1) * 100 if invested > 0 else 0.0
@@ -542,13 +600,22 @@ def _trade_levels(
     atr: float,
     net_target: float,
     round_trip_cost_bps: float,
+    direction: str = "KUP",
 ) -> TradeLevels:
     fee = _per_side_fee(round_trip_cost_bps)
     fee_in = entry * fee
-    take_profit = entry * (1 + fee) * (1 + net_target) / (1 - fee)
-    stop_loss = entry - ATR_STOP_MULTIPLIER * atr
-    if stop_loss <= 0:
-        stop_loss = entry * 0.98
+    if direction == "SPRZEDAJ":
+        take_profit = (
+            entry * (1 - fee) * (1 - net_target) / (1 + fee)
+        )
+        stop_loss = entry + ATR_STOP_MULTIPLIER * atr
+        trailing_activation = entry - atr
+    else:
+        take_profit = entry * (1 + fee) * (1 + net_target) / (1 - fee)
+        stop_loss = entry - ATR_STOP_MULTIPLIER * atr
+        if stop_loss <= 0:
+            stop_loss = entry * 0.98
+        trailing_activation = entry + atr
     return {
         "entry_price": entry,
         "entry_fee": fee_in,
@@ -557,14 +624,16 @@ def _trade_levels(
             entry,
             take_profit,
             round_trip_cost_bps,
+            direction,
         ),
         "stop_loss": stop_loss,
         "trailing_stop": stop_loss,
-        "trailing_stop_activation_price": entry + atr,
+        "trailing_stop_activation_price": trailing_activation,
         "trailing_stop_rule": (
-            f"Początkowy SL = {ATR_STOP_MULTIPLIER:g}×ATR; po wzroście o 1×ATR "
-            f"stop podąża {ATR_STOP_MULTIPLIER:g}×ATR za maksimum od momentu "
-            "wejścia i nie obniża się."
+            f"Początkowy SL = {ATR_STOP_MULTIPLIER:g}×ATR; trailing aktywuje "
+            f"się po ruchu 1×ATR na korzyść {direction} i podąża "
+            f"{ATR_STOP_MULTIPLIER:g}×ATR za ekstremum ceny; nie obniża się "
+            "dla KUP ani nie podnosi dla SPRZEDAJ."
         ),
         "net_target_return_pct": net_target * 100,
     }
@@ -575,8 +644,14 @@ def _net_risk_reward(
     take_profit: float,
     stop_loss: float,
     round_trip_cost_bps: float,
+    direction: str = "KUP",
 ) -> float:
     fee = _per_side_fee(round_trip_cost_bps)
+    if direction == "SPRZEDAJ":
+        proceeds = entry * (1 - fee)
+        risk = stop_loss * (1 + fee) - proceeds
+        reward = proceeds - take_profit * (1 + fee)
+        return max(0.0, reward) / risk if risk > 0 else 0.0
     entry_cost = entry * (1 + fee)
     risk = entry_cost - stop_loss * (1 - fee)
     reward = take_profit * (1 - fee) - entry_cost
@@ -793,6 +868,13 @@ def _short_term_item(
         if isinstance(histogram_value, (int, float))
         else 0.0
     )
+    trend_signal = _direction_from_trend(
+        price,
+        indicators,
+        candles,
+        reference_price=vwap,
+        momentum=macd_histogram,
+    )
     prior_histogram = (
         candles[-2].get("macd_histogram")
         if len(candles) > 1
@@ -812,18 +894,24 @@ def _short_term_item(
         if isinstance(candle.get("high"), (int, float))
     ]
     resistance = max(resistance_values) if resistance_values else None
-    trigger = max(price, resistance) if resistance is not None else price
+    trigger = (
+        max(price, resistance)
+        if trend_signal == "KUP" and resistance is not None
+        else price
+    )
     levels = _trade_levels(
         trigger,
         atr,
         SHORT_TERM_NET_TARGET_RETURN,
         round_trip_cost_bps,
+        trend_signal,
     )
     risk_reward = _net_risk_reward(
         trigger,
         levels["take_profit"],
         levels["stop_loss"],
         round_trip_cost_bps,
+        trend_signal,
     )
     risk_reward_points = (
         15.0
@@ -942,6 +1030,7 @@ def _short_term_item(
         and relative_volume >= 1.0
         and risk_reward >= 2.0
         and score >= QUALIFICATION_THRESHOLD
+        and trend_signal == "KUP"
         and (research.get("is_historical", False) or (
             live_quality_reviewed and has_qualitative_sentiment
         ))
@@ -959,6 +1048,8 @@ def _short_term_item(
         ]
     if risk_reward < 2.0:
         reasons.append("Risk/Reward jest niższy niż wymagane minimum 1:2.")
+    if trend_signal != "KUP":
+        reasons.append("Trend krótkoterminowy jest spadkowy; sygnał kierunkowy: SPRZEDAJ.")
     if score < QUALIFICATION_THRESHOLD:
         reasons.append(
             f"Wynik krótkoterminowy jest niższy niż {QUALIFICATION_THRESHOLD:.0f}/150."
@@ -975,7 +1066,7 @@ def _short_term_item(
         reasons.append("Dane syntetyczne.")
     return {
         "symbol": symbol,
-        "signal": "KUP" if qualified else "CZEKAJ",
+        "signal": trend_signal,
         "price": price,
         "timestamp": research.get("timestamp"),
         "timeframe": SHORT_TERM_TIMEFRAME,
@@ -1000,6 +1091,7 @@ def _short_term_item(
         "time_stop_rule": time_stop_rule,
         "round_trip_cost_bps_assumption": round_trip_cost_bps,
         "qualified": qualified,
+        "directional_target_price": levels["take_profit"],
         "disqualification_reasons": reasons,
         "estimated_horizon": "Do końca sesji",
     }
@@ -1042,6 +1134,14 @@ def _swing_item(
     rsi = float(indicators["rsi_14"])
     rsi_points = 10.0 if 45 <= rsi <= 65 else 0.0
     current_macd = float(indicators["macd"])
+    current_macd_signal = float(indicators["macd_signal"])
+    trend_signal = _direction_from_trend(
+        price,
+        indicators,
+        candles,
+        reference_price=sma50,
+        momentum=current_macd - current_macd_signal,
+    )
     prior_macd = candles[-2].get("macd") if len(candles) > 1 else None
     macd_rising = (
         isinstance(prior_macd, (int, float))
@@ -1187,18 +1287,24 @@ def _swing_item(
         ),
         default=None,
     )
-    trigger = max(price, resistance) if resistance is not None else price
+    trigger = (
+        max(price, resistance)
+        if trend_signal == "KUP" and resistance is not None
+        else price
+    )
     levels = _trade_levels(
         trigger,
         atr,
         SWING_NET_TARGET_RETURN,
         round_trip_cost_bps,
+        trend_signal,
     )
     risk_reward = _net_risk_reward(
         trigger,
         levels["take_profit"],
         levels["stop_loss"],
         round_trip_cost_bps,
+        trend_signal,
     )
     risk_points = (
         25.0
@@ -1229,6 +1335,7 @@ def _swing_item(
         and sma50 is not None
         and sma200 is not None
         and risk_reward >= 1.5
+        and trend_signal == "KUP"
         and not research.get("is_mock", False)
         and (
             research.get("is_historical", False)
@@ -1244,6 +1351,8 @@ def _swing_item(
         reasons.append("Brak wystarczającej historii do SMA50/SMA200.")
     if risk_reward < 1.5:
         reasons.append("Risk/Reward poniżej minimalnego progu 1:1,5.")
+    if trend_signal != "KUP":
+        reasons.append("Trend kilkudniowy jest spadkowy; sygnał kierunkowy: SPRZEDAJ.")
     if not research.get("is_historical", False) and not live_quality_reviewed:
         reasons.append("Brak przeglądu opinii i sentymentu dla kandydata.")
     if (
@@ -1256,7 +1365,7 @@ def _swing_item(
         reasons.append("Dane syntetyczne.")
     return {
         "symbol": symbol,
-        "signal": "KUP" if qualified else "CZEKAJ",
+        "signal": trend_signal,
         "price": price,
         "timestamp": research.get("timestamp"),
         "timeframe": SCAN_TIMEFRAME,
@@ -1280,6 +1389,7 @@ def _swing_item(
         ],
         "round_trip_cost_bps_assumption": round_trip_cost_bps,
         "qualified": qualified,
+        "directional_target_price": levels["take_profit"],
         "disqualification_reasons": reasons,
         "estimated_horizon": "3–5 dni",
     }
@@ -1376,6 +1486,7 @@ def _scan_short_term_market(
         ),
         reverse=True,
     )
+    detailed_assets = _retain_top_ranked_details(ranked_assets)
     recommendations = [item for item in items if item["qualified"]]
     return {
         "analysis_category": "short_term",
@@ -1398,8 +1509,12 @@ def _scan_short_term_market(
         ),
         "timeframe": SHORT_TERM_TIMEFRAME,
         "qualification_rule": (
-            "momentum KUP, wynik > 75/100 i RelVol >= 1,0"
+            f"wynik >= {QUALIFICATION_THRESHOLD:.0f}/150, trend KUP, "
+            "RelVol >= 1,0 i R/R >= 1:2"
         ),
+        "qualification_threshold": QUALIFICATION_THRESHOLD,
+        "detailed_asset_limit": TOP_RANKED_DETAIL_ASSETS,
+        "detailed_assets": detailed_assets,
         "round_trip_cost_bps_assumption": round_trip_cost_bps,
         "target_return_pct": SHORT_TERM_NET_TARGET_RETURN * 100,
         "scanned_assets": len(symbols),
@@ -1520,7 +1635,7 @@ def _legacy_scan_market(
         max_workers=min(STAGE_TWO_MAX_ASSETS, max(1, len(candidates)))
     ) as executor:
         future_map = {
-            executor.submit(_finish_candidate, researcher, candidate, round_trip_cost_bps): candidate
+            executor.submit(_finish_candidate,             market_researcher, candidate, round_trip_cost_bps): candidate
             for candidate in candidates
         }
         for future in concurrent.futures.as_completed(future_map):
@@ -1588,6 +1703,7 @@ def _legacy_scan_market(
         ),
         reverse=True,
     )
+    detailed_assets = _retain_top_ranked_details(ranked_assets)
     return {
         "recommendations": recommendations,
         "watchlist": watchlist,
@@ -1609,6 +1725,7 @@ def _legacy_scan_market(
         "stage_one_minimum_points": STAGE_ONE_MINIMUM_POINTS,
         "stage_two_max_assets": STAGE_TWO_MAX_ASSETS,
         "stage_two_reviewed_assets": len(candidates),
+        "detailed_assets": detailed_assets,
         "scanned_assets": len(symbols),
         "stock_assets": len(set(symbols) & set(STOCK_UNIVERSE)),
         "crypto_assets": len(set(symbols) & set(CRYPTO_UNIVERSE)),
@@ -1634,18 +1751,36 @@ def _market_context_score(research: dict[str, Any]) -> float:
     return 0.0
 
 
+def _retain_top_ranked_details(
+    ranked_assets: list[dict[str, Any]],
+) -> list[str]:
+    detailed_assets: list[str] = []
+    for rank, item in enumerate(ranked_assets, start=1):
+        has_market_data = not item.get("error")
+        item["details_available"] = (
+            rank <= TOP_RANKED_DETAIL_ASSETS and has_market_data
+        )
+        if item["details_available"]:
+            detailed_assets.append(item["symbol"])
+            continue
+        for field in ("candles", "indicators", "score_breakdown", "broker_inputs"):
+            item.pop(field, None)
+    return detailed_assets
+
+
 def _scan_category_market(
     symbols: tuple[str, ...],
     round_trip_cost_bps: float,
     as_of: datetime | None,
     analysis_category: str,
+    researcher: ResearchAgent | None = None,
 ) -> dict[str, Any]:
     if analysis_category not in {MULTI_DAY_CATEGORY, SHORT_TERM_CATEGORY}:
         raise ValueError(f"Nieznana kategoria analizy: {analysis_category}")
     is_short_term = analysis_category == SHORT_TERM_CATEGORY
     timeframe = SHORT_TERM_TIMEFRAME if is_short_term else SCAN_TIMEFRAME
     candle_limit = SHORT_TERM_CANDLE_LIMIT if is_short_term else SCAN_CANDLE_LIMIT
-    researcher = ResearchAgent(
+    market_researcher = researcher or ResearchAgent(
         timeout=NETWORK_TIMEOUT_SECONDS,
         allow_mock_data=False,
     )
@@ -1656,7 +1791,7 @@ def _scan_category_market(
     market_context_points = 0.0
     if not is_short_term and "SPY" not in symbols:
         try:
-            market_proxy = researcher.analyze(
+            market_proxy = market_researcher.analyze(
                 symbol="SPY",
                 timeframe=SCAN_TIMEFRAME,
                 limit=SCAN_CANDLE_LIMIT,
@@ -1669,7 +1804,7 @@ def _scan_category_market(
             LOGGER.warning("Brak kontekstu rynku SPY: %s", error)
 
     def scan_symbol(symbol: str) -> dict[str, Any]:
-        research = researcher.analyze(
+        research = market_researcher.analyze(
             symbol=symbol,
             timeframe=timeframe,
             limit=candle_limit,
@@ -1711,7 +1846,7 @@ def _scan_category_market(
                     {"symbol": symbol, "error": f"{type(error).__name__}: {error}"}
                 )
 
-    enrich_qualitative = getattr(researcher, "enrich_qualitative", None)
+    enrich_qualitative = getattr(market_researcher, "enrich_qualitative", None)
     candidates = sorted(
         (
             item
@@ -1805,6 +1940,7 @@ def _scan_category_market(
         ),
         reverse=True,
     )
+    detailed_assets = _retain_top_ranked_details(ranked_assets)
     recommendations = [item for item in items if item["qualified"]]
     return {
         "analysis_category": "short_term" if is_short_term else "multi_day",
@@ -1830,6 +1966,8 @@ def _scan_category_market(
         "round_trip_cost_bps_assumption": round_trip_cost_bps,
         "maximum_score": 150,
         "qualification_threshold": QUALIFICATION_THRESHOLD,
+        "detailed_asset_limit": TOP_RANKED_DETAIL_ASSETS,
+        "detailed_assets": detailed_assets,
         "qualification_rule": (
             f"wynik >= {QUALIFICATION_THRESHOLD:.0f}/150"
             + (" i RelVol >= 1,0 oraz R/R >= 1:2" if is_short_term else "")
@@ -1853,12 +1991,14 @@ def _scan_market(
     round_trip_cost_bps: float = ROUND_TRIP_COST_BPS,
     as_of: datetime | None = None,
     analysis_category: str = MULTI_DAY_CATEGORY,
+    researcher: ResearchAgent | None = None,
 ) -> dict[str, Any]:
     return _scan_category_market(
         symbols,
         round_trip_cost_bps,
         as_of,
         analysis_category,
+        researcher,
     )
 
 
@@ -1901,8 +2041,13 @@ def _calculate_revolut_position(
         allow_mock_data=False,
     )
     if research["is_mock"]:
+        market_data_source = (
+            "Binance Spot Testnet"
+            if research.get("data_source") == "binance_testnet"
+            else "Yahoo Finance"
+        )
         raise RuntimeError(
-            "Dane rynkowe są syntetyczne. Odśwież analizę, gdy Yahoo Finance "
+            f"Dane rynkowe są syntetyczne. Odśwież analizę, gdy {market_data_source} "
             "udostępni rzeczywiste notowania."
         )
 
@@ -2214,8 +2359,13 @@ def _render_short_term_scan(scan: dict[str, Any]) -> None:
                     if isinstance(item.get("relative_volume"), (int, float))
                     else "brak danych"
                 ),
-                "Trigger kupna": _format_market_price(item.get("entry_price")),
-                "Take-Profit": _format_market_price(item.get("take_profit")),
+                "Warunek / poziom celu": (
+                    f"KUP przy {_format_market_price(item.get('entry_price'))}; "
+                    f"cel {_format_market_price(item.get('take_profit'))}"
+                    if item.get("signal") == "KUP"
+                    else f"SPRZEDAJ; realizuj przy "
+                    f"{_format_market_price(item.get('take_profit'))}"
+                ),
                 "Potencjalny zysk": (
                     f"{item['potential_profit_pct']:+.2f}%"
                     if isinstance(item.get("potential_profit_pct"), (int, float))
@@ -2238,9 +2388,21 @@ def _render_short_term_scan(scan: dict[str, Any]) -> None:
     )
     st.caption(
         f"Pełny ranking: {len(ranked_assets)} aktywów, od najwyższego do "
-        "najniższego score. Rozwiń kartę aktywa po szczegóły."
+        "najniższego score. Szczegóły dostępne dla maksymalnie trzech najlepszych."
     )
+    detail_symbols = {
+        item["symbol"]
+        for item in ranked_assets
+        if item.get("details_available")
+    }
+    if detail_symbols:
+        st.caption(
+            "Pełne szczegóły pokazano wyłącznie dla trzech najwyżej ocenionych "
+            "aktywów z danymi rynkowymi."
+        )
     for rank, item in enumerate(ranked_assets, start=1):
+        if item["symbol"] not in detail_symbols:
+            continue
         if item.get("error"):
             with st.expander(f"{rank}. {item['symbol']} · błąd danych"):
                 st.error(f"🚨 {item['error']}", icon="🚨")
@@ -2248,7 +2410,7 @@ def _render_short_term_scan(scan: dict[str, Any]) -> None:
         currency = _price_currency(item["symbol"])
         probability = item.get("target_probability_pct")
         probability_label = (
-            f"{probability:.1f}% szans heurystycznych na +2,0% podczas sesji"
+            f"{probability:.1f}% estymacji kierunkowej podczas sesji"
             if isinstance(probability, (int, float))
             else "Brak estymacji"
         )
@@ -2265,7 +2427,7 @@ def _render_short_term_scan(scan: dict[str, Any]) -> None:
             metrics = st.columns(4)
             metrics[0].metric("Punktacja", f"{item['broker_points']:.1f}/100")
             metrics[1].metric(
-                "Estymacja +2,0% dziś",
+                f"Estymacja kierunkowa · {item['signal']}",
                 f"{probability:.1f}%"
                 if isinstance(probability, (int, float))
                 else "—",
@@ -2283,12 +2445,18 @@ def _render_short_term_scan(scan: dict[str, Any]) -> None:
                 f"1:{ratio:.2f}" if isinstance(ratio, (int, float)) else "—",
             )
             st.write(
-                f"**WYZWOLENIE KUPNA (Trigger):** jeśli cena osiągnie "
-                f"{_format_market_price(item.get('entry_price'))} {currency} "
-                "i RelVol wynosi co najmniej 1,2× (wybicie poziomu oporu) → KUP."
+                (
+                    f"**Sygnał KUP (Trigger):** jeśli cena osiągnie "
+                    f"{_format_market_price(item.get('entry_price'))} {currency} "
+                    "przy RelVol co najmniej 1,0 → KUP."
+                    if item.get("signal") == "KUP"
+                    else f"**Sygnał SPRZEDAJ:** trend jest spadkowy; "
+                    f"cel kierunkowy to {_format_market_price(item.get('take_profit'))} "
+                    f"{currency}."
+                )
             )
             st.write(
-                f"**POZIOM WYJŚCIA Z ZYSKIEM (Take-Profit):** sprzedaj przy "
+                f"**Poziom realizacji celu:** realizuj przy "
                 f"{_format_market_price(item.get('take_profit'))} {currency}. "
                 "Cel +2,0% netto uwzględnia modelowe opłaty 0,1% za stronę."
             )
@@ -2349,7 +2517,8 @@ def _render_category_scored_scan(scan: dict[str, Any]) -> None:
         )
     threshold = scan.get("qualification_threshold", QUALIFICATION_THRESHOLD)
     st.caption(
-        f"Sygnał KUP wymaga co najmniej {threshold:.0f}/150 pkt"
+        f"Kwalifikacja do rekomendacji KUP wymaga co najmniej "
+        f"{threshold:.0f}/150 pkt"
         + (" oraz RelVol ≥ 1,0 i R/R ≥ 1:2." if is_short_term else ".")
         + f" Etap jakościowy ocenił {scan.get('stage_two_reviewed_assets', 0)} "
         "kandydatów."
@@ -2392,8 +2561,13 @@ def _render_category_scored_scan(scan: dict[str, Any]) -> None:
                     if isinstance(item.get("relative_volume"), (int, float))
                     else "—"
                 ),
-                "Trigger": _format_market_price(item.get("entry_price")),
-                "Take-Profit": _format_market_price(item.get("take_profit")),
+                "Warunek / poziom celu": (
+                    f"KUP przy {_format_market_price(item.get('entry_price'))}; "
+                    f"realizuj przy {_format_market_price(item.get('take_profit'))}"
+                    if item.get("signal") == "KUP"
+                    else f"SPRZEDAJ; realizuj przy "
+                    f"{_format_market_price(item.get('take_profit'))}"
+                ),
                 "Stop-Loss": _format_market_price(item.get("stop_loss")),
                 "Status": (
                     "Kwalifikuje się"
@@ -2407,10 +2581,23 @@ def _render_category_scored_scan(scan: dict[str, Any]) -> None:
     st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
     st.caption(
         f"Pełny ranking: {len(ranked_assets)} aktywów, malejąco według "
-        "punktacji 0–150. Kliknij kartę aktywa, aby rozwinąć szczegóły."
+        "punktacji 0–150. Rozwinięte szczegóły są dostępne dla maksymalnie "
+        "trzech najlepszych aktywów."
     )
 
+    detail_symbols = {
+        item["symbol"]
+        for item in ranked_assets
+        if item.get("details_available")
+    }
+    if detail_symbols:
+        st.caption(
+            f"Szczegółowe analizy ograniczono do {len(detail_symbols)} "
+            "najwyżej ocenionych aktywów."
+        )
     for rank, item in enumerate(ranked_assets, start=1):
+        if item["symbol"] not in detail_symbols:
+            continue
         points = item.get("broker_points")
         title_score = f"{points:.2f}/150" if isinstance(points, (int, float)) else "brak punktacji"
         with st.expander(f"{rank}. {item['symbol']} · {title_score}"):
@@ -2454,7 +2641,13 @@ def _render_category_scored_scan(scan: dict[str, Any]) -> None:
             )
             trigger = item.get("entry_price")
             probability = item.get("target_probability_pct")
-            if is_short_term:
+            if item.get("signal") == "SPRZEDAJ":
+                st.write(
+                    f"**Sygnał SPRZEDAJ:** trend jest spadkowy. "
+                    f"Poziom realizacji celu: "
+                    f"{_format_market_price(item.get('take_profit'))} {currency}."
+                )
+            elif is_short_term:
                 st.write(
                     f"**Warunek zakupu (Trigger):** jeśli cena osiągnie "
                     f"{_format_market_price(trigger)} {currency} przy RelVol "
@@ -2472,9 +2665,9 @@ def _render_category_scored_scan(scan: dict[str, Any]) -> None:
                     f"{_format_market_price(trigger)} {currency} → KUP."
                 )
             st.write(
-                f"**Take-Profit:** sprzedaj przy "
+                f"**Poziom realizacji celu:** realizuj przy "
                 f"{_format_market_price(item.get('take_profit'))} {currency} "
-                f"(cel +{target_pct:.1f}% netto po prowizjach)."
+                f"(cel kierunkowy {target_pct:.1f}% netto po prowizjach)."
             )
             st.write(
                 f"**Stop-Loss:** zamknij pozycję przy "
@@ -2499,7 +2692,11 @@ def _render_category_scored_scan(scan: dict[str, Any]) -> None:
             if item.get("qualified"):
                 st.success("Aktywo spełnia warunki kwalifikacji modelu.")
             else:
-                st.warning("Aktywo nie spełnia wszystkich warunków kwalifikacji.")
+                st.warning(
+                    f"Sygnał kierunkowy: {item['signal']}. Aktywo nie spełnia "
+                    "progu kwalifikacji; traktuj sygnał jako obserwacyjny, "
+                    "nie jako potwierdzoną rekomendację."
+                )
             for reason in item.get("disqualification_reasons", []):
                 st.caption(f"• {reason}")
             candles = item.get("candles", [])
@@ -2516,6 +2713,88 @@ def _render_category_scored_scan(scan: dict[str, Any]) -> None:
                 )
                 if not chart.empty:
                     st.line_chart(chart, height=280)
+
+
+def _testnet_top3_crypto_candidates(
+    scan: dict[str, Any],
+) -> list[tuple[int, dict[str, Any]]]:
+    if scan.get("mode") != "live":
+        return []
+    ranked_assets = scan.get("ranked_assets", [])
+    if not isinstance(ranked_assets, list):
+        return []
+    return [
+        (rank, item)
+        for rank, item in enumerate(
+            ranked_assets[:TOP_RANKED_DETAIL_ASSETS],
+            start=1,
+        )
+        if isinstance(item, dict) and item.get("symbol") in CRYPTO_UNIVERSE
+    ]
+
+
+def _is_testnet_buy_eligible(item: dict[str, Any]) -> bool:
+    return (
+        item.get("symbol") in CRYPTO_UNIVERSE
+        and item.get("signal") == "KUP"
+        and bool(item.get("qualified"))
+        and not item.get("is_mock")
+        and not item.get("error")
+    )
+
+
+def _render_binance_testnet_actions(scan: dict[str, Any]) -> None:
+    candidates = _testnet_top3_crypto_candidates(scan)
+    if not candidates:
+        return
+    st.subheader("Binance Spot Testnet · ręczne zlecenia")
+    st.caption(
+        "Każdy przycisk składa market BUY za 50 USDT na wirtualnym koncie. "
+        "Sygnał SPRZEDAJ jest wyświetlany, ale nie powoduje automatycznej "
+        "sprzedaży ani otwarcia pozycji krótkiej."
+    )
+    for rank, item in candidates:
+        symbol = item["symbol"]
+        if item.get("error"):
+            continue
+        if item.get("signal") == "SPRZEDAJ":
+            st.info(
+                f"{rank}. {symbol}: sygnał SPRZEDAJ — bez automatycznego "
+                "zlecenia na Spot Testnet."
+            )
+            continue
+        if not _is_testnet_buy_eligible(item):
+            continue
+        if st.button(
+            f"🧪 Kup {symbol} za {BINANCE_TESTNET_BUY_QUOTE_AMOUNT:g} USDT",
+            key=f"binance_testnet_buy_{symbol}",
+        ):
+            try:
+                with st.spinner(f"Wysyłam market BUY {symbol} na Testnet..."):
+                    order = submit_testnet_market_buy(
+                        symbol,
+                        BINANCE_TESTNET_BUY_QUOTE_AMOUNT,
+                        timeout=NETWORK_TIMEOUT_SECONDS,
+                    )
+            except (
+                BinanceAPIException,
+                BinanceRequestException,
+                RequestException,
+                OSError,
+                RuntimeError,
+                ValueError,
+            ) as error:
+                LOGGER.exception("Binance Testnet nie przyjął BUY dla %s", symbol)
+                st.error(
+                    f"Nie udało się złożyć zlecenia dla {symbol}: "
+                    f"{type(error).__name__}: {error}"
+                )
+            else:
+                st.success(
+                    f"Binance Testnet zwrócił zlecenie {symbol}: "
+                    f"status {order.get('status', 'nieznany')}, "
+                    f"orderId {order.get('orderId', 'brak')}."
+                )
 
 
 def _render_scan(scan: dict[str, Any]) -> None:
@@ -2536,7 +2815,8 @@ def _render_scan(scan: dict[str, Any]) -> None:
         )
     st.caption(
         f"Przeskanowano {scan.get('stock_assets', 0)} akcji US/UE i "
-        f"{scan.get('crypto_assets', 0)} aktywów krypto przez Yahoo Finance · "
+        f"{scan.get('crypto_assets', 0)} aktywów krypto · akcje: Yahoo Finance, "
+        "krypto: Binance Testnet · "
         f"interwał {scan['timeframe']} · "
         f"aktualizacja: {scan['scanned_at']}"
     )
@@ -2659,7 +2939,9 @@ def _render_scan(scan: dict[str, Any]) -> None:
     )
     metrics[3].metric("ADX (14)", _format_number(indicators.get("adx_14"), 2))
     st.caption(
-        f"Źródło: Yahoo Finance · interwał {item.get('timeframe', scan['timeframe'])} · "
+        f"Źródło: "
+        f"{'Binance Spot Testnet' if item['symbol'] in CRYPTO_UNIVERSE else 'Yahoo Finance'}"
+        f" · interwał {item.get('timeframe', scan['timeframe'])} · "
         f"ostatnia świeca: {item.get('timestamp', '—')}"
     )
     st.info(
@@ -2785,13 +3067,90 @@ def _render_scan(scan: dict[str, Any]) -> None:
             st.line_chart(detail_chart, height=300)
 
 
+def _render_binance_futures_metrics() -> None:
+    st.subheader("Binance Testnet · statystyki konta")
+    try:
+        metrics = get_futures_testnet_account_metrics(
+            timeout=NETWORK_TIMEOUT_SECONDS,
+            realized_lookback_days=FUTURES_TESTNET_REALIZED_PNL_DAYS,
+        )
+    except (
+        BinanceAPIException,
+        BinanceRequestException,
+        RequestException,
+        OSError,
+        RuntimeError,
+        ValueError,
+    ) as error:
+        LOGGER.warning(
+            "Nie udało się pobrać statystyk Futures Testnet (%s); "
+            "próba użycia salda Spot Testnet.",
+            type(error).__name__,
+        )
+        try:
+            spot_balance = get_spot_testnet_account_balance(
+                timeout=NETWORK_TIMEOUT_SECONDS,
+            )
+        except (
+            BinanceAPIException,
+            BinanceRequestException,
+            RequestException,
+            OSError,
+            RuntimeError,
+            ValueError,
+        ) as spot_error:
+            LOGGER.warning(
+                "Nie udało się pobrać salda Spot Testnet (%s).",
+                type(spot_error).__name__,
+            )
+            columns = st.columns(3)
+            columns[0].metric("Saldo USDT · niedostępne", "—")
+            columns[1].metric("Niezrealizowany PnL · Futures", "—")
+            columns[2].metric("Zrealizowany PnL · Futures", "—")
+            st.info(
+                "Statystyki kont Binance Testnet są chwilowo niedostępne. "
+                "Sprawdź połączenie, klucze BINANCE_TESTNET_API_KEY i "
+                "BINANCE_TESTNET_SECRET_KEY oraz uprawnienia do Futures "
+                "Testnet. Puste wartości są tylko bezpiecznymi placeholderami, "
+                "nie danymi konta."
+            )
+            return
+
+        columns = st.columns(3)
+        columns[0].metric("Saldo USDT · Spot Testnet", f"{spot_balance:.4f}")
+        columns[1].metric("Niezrealizowany PnL · Futures", "N/D")
+        columns[2].metric("Zrealizowany PnL · Futures", "N/D")
+        st.info(
+            "Futures Testnet odrzucił żądanie. Pokazano saldo ze Spot Testnet "
+            "(testnet.binance.vision); PnL Futures nie jest dostępny w trybie "
+            "awaryjnym. Sprawdź uprawnienia kluczy do USD-M Futures Testnet."
+        )
+        return
+    columns = st.columns(3)
+    columns[0].metric("Saldo USDT", f"{metrics['balance_usdt']:.4f}")
+    columns[1].metric(
+        "Niezrealizowany PnL · USDT",
+        f"{metrics['unrealized_pnl_usdt']:+.4f}",
+    )
+    columns[2].metric(
+        f"Zrealizowany PnL · {FUTURES_TESTNET_REALIZED_PNL_DAYS} dni · USDT",
+        f"{metrics['realized_pnl_usdt']:+.4f}",
+    )
+    st.caption("Wartości pobrane bez cache z Futures Testnet przy wczytaniu widoku.")
+
+
 def _render_detail(
     report: dict[str, Any],
     round_trip_cost_bps: float,
 ) -> None:
     if report.get("is_mock"):
+        market_data_source = (
+            "Binance Spot Testnet"
+            if report.get("data_source") == "binance_testnet"
+            else "Yahoo Finance"
+        )
         st.warning(
-            "Yahoo Finance było niedostępne. Dane syntetyczne są tylko testowe; "
+            f"{market_data_source} było niedostępne. Dane syntetyczne są tylko testowe; "
             "sygnał transakcyjny jest zablokowany."
         )
 
@@ -2864,7 +3223,7 @@ def _render_detail(
             st.line_chart(chart, height=400)
             if scenario_levels:
                 st.caption(
-                    "Sygnał CZEKAJ: linie SL/TP pokazują wyłącznie hipotetyczne "
+                    "Linie SL/TP pokazują wyłącznie hipotetyczne "
                     "scenariusze long i short (SL = 1,8×ATR, TP = R:R 1:2); "
                     "nie są rekomendacją."
                 )
@@ -2920,6 +3279,7 @@ def main() -> None:
         layout="wide",
     )
     st.title("📈 Ranking okazji inwestycyjnych")
+    _render_binance_futures_metrics()
     analysis_category = st.radio(
         "Kategoria horyzontu czasowego",
         (MULTI_DAY_CATEGORY, SHORT_TERM_CATEGORY),
@@ -2927,9 +3287,9 @@ def main() -> None:
         key="analysis_category",
     )
     st.caption(
-        "Skan popularnych akcji US/UE i kryptowalut przez Yahoo Finance. "
-        "Notowania mogą być opóźnione przez dostawcę lub giełdę; analiza ma "
-        "charakter informacyjny i nie składa zleceń."
+        "Skan akcji US/UE przez Yahoo Finance i kryptowalut przez Binance Spot "
+        "Testnet. Analiza ma charakter informacyjny; osobne przyciski mogą "
+        "wysyłać ręczne zlecenia demo dla kwalifikującego się Top 3 krypto."
     )
 
     analysis_mode = st.radio(
@@ -2964,19 +3324,19 @@ def main() -> None:
         st.caption(
             "Godzina podawana w czasie Europe/Warsaw. "
             + (
-                "Skan 15m używa ukończonych świec Yahoo Finance; sesje "
-                "przed- i posesyjne są uwzględniane, jeśli dostawca je udostępnia. "
-                "Historia intraday jest zwykle ograniczona do ok. 60 dni."
+                "Skan 15m używa ukończonych świec Binance Spot Testnet dla krypto "
+                "i Yahoo Finance dla akcji; historia intraday zależy od źródła."
                 if analysis_category == SHORT_TERM_CATEGORY
                 else "Skan dzienny odrzuca świecę z dnia historycznego snapshotu; "
-                "źródło Yahoo Finance obejmuje maksymalnie około 5 lat."
+                "akcje pochodzą z Yahoo Finance, a krypto z Binance Spot Testnet."
             )
         )
     if analysis_category == SHORT_TERM_CATEGORY:
         st.caption(
-            "Tryb szybki: świece 15m i przygotowanie do sesji USA od 14:00 "
-            "czasu PL (pre-market, gdy dostępny); regularne otwarcie USA "
-            "przypada zwykle o 15:30, okresowo o 14:30."
+            "Tryb szybki: świece 15m, Binance Spot Testnet dla krypto, Yahoo "
+            "Finance dla akcji; przygotowanie do sesji USA od 14:00 czasu PL "
+            "(pre-market, gdy dostępny). Regularne otwarcie USA przypada "
+            "zwykle o 15:30, okresowo o 14:30."
         )
     st.caption(
         f"Zakres: {len(set(scan_symbols) & set(STOCK_UNIVERSE))} akcji US/UE, "
@@ -3064,6 +3424,7 @@ def main() -> None:
         and st.session_state.get("market_scan_as_of") == requested_snapshot
     ):
         _render_scan(scan_result)
+        _render_binance_testnet_actions(scan_result)
         errors = scan_result.get("errors", [])
         if errors:
             st.error(

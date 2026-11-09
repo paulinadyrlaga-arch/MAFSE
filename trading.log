@@ -1,0 +1,512 @@
+2026-11-09 20:57:45,059 WARNING BOT URUCHOMIONY: wyłącznie Futures Testnet; LONG KUP; Top 3 krypto; margin=10.00 USDT, dźwignia=5x, odstęp=60.0 s. Brak automatycznych zleceń wyjścia.
+2026-11-09 20:57:45,059 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 20:57:55,885 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 20:57:58,905 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 20:57:58,907 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 20:57:58,908 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 20:57:58,908 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 20:57:58,911 INFO CYKL: zakończono; wyników=3.
+2026-11-09 20:58:58,916 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 20:59:10,411 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 20:59:13,261 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 20:59:13,264 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 20:59:13,264 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 20:59:13,264 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 20:59:13,265 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:00:13,273 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:00:25,144 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:00:27,975 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:00:27,976 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:00:27,976 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:00:27,976 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:00:27,977 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:01:27,981 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:01:39,314 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:01:42,649 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:01:42,651 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:01:42,652 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:01:42,652 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:01:42,653 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:02:42,660 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:02:55,546 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:02:59,397 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:02:59,400 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:02:59,400 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:02:59,400 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:02:59,401 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:03:59,404 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:04:09,833 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:04:13,001 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:04:13,004 ERROR CYKL: ICP-USD ranga=1 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:04:13,004 INFO SYGNAŁ: AVAX-USD ranga=2 sygnał=SPRZEDAJ punkty=36.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:04:13,004 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:04:13,004 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:05:13,008 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:05:23,323 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:05:26,696 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:05:26,699 ERROR CYKL: ICP-USD ranga=1 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:05:26,699 INFO SYGNAŁ: AVAX-USD ranga=2 sygnał=SPRZEDAJ punkty=36.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:05:26,700 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:05:26,700 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:06:26,701 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:06:37,550 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:06:41,154 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:06:41,157 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:06:41,158 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:06:41,158 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:06:41,160 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:07:43,590 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:07:53,089 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:07:56,998 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:07:57,000 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:07:57,000 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:07:57,000 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:07:57,001 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:08:57,090 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:09:10,270 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:09:14,301 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:09:14,304 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:09:14,304 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:09:14,304 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:09:14,306 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:25:12,030 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:25:21,559 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:25:24,894 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:25:24,898 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=58.44 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:25:24,898 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:25:24,898 INFO SYGNAŁ: UNI-USD ranga=3 sygnał=SPRZEDAJ punkty=35.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:25:24,900 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:41:22,590 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:41:22,805 ERROR LEWAR: nie ustawiono 5x dla BTC-USD (ConnectionError)
+2026-11-09 21:41:22,819 ERROR LEWAR: nie ustawiono 5x dla ETH-USD (ConnectionError)
+2026-11-09 21:41:22,833 ERROR LEWAR: nie ustawiono 5x dla SOL-USD (ConnectionError)
+2026-11-09 21:41:22,846 ERROR LEWAR: nie ustawiono 5x dla XRP-USD (ConnectionError)
+2026-11-09 21:41:22,860 ERROR LEWAR: nie ustawiono 5x dla ADA-USD (ConnectionError)
+2026-11-09 21:41:22,873 ERROR LEWAR: nie ustawiono 5x dla DOGE-USD (ConnectionError)
+2026-11-09 21:41:22,887 ERROR LEWAR: nie ustawiono 5x dla DOT-USD (ConnectionError)
+2026-11-09 21:41:22,900 ERROR LEWAR: nie ustawiono 5x dla LTC-USD (ConnectionError)
+2026-11-09 21:41:22,914 ERROR LEWAR: nie ustawiono 5x dla BCH-USD (ConnectionError)
+2026-11-09 21:41:22,927 ERROR LEWAR: nie ustawiono 5x dla AVAX-USD (ConnectionError)
+2026-11-09 21:41:22,940 ERROR LEWAR: nie ustawiono 5x dla LINK-USD (ConnectionError)
+2026-11-09 21:41:22,954 ERROR LEWAR: nie ustawiono 5x dla XLM-USD (ConnectionError)
+2026-11-09 21:41:22,967 ERROR LEWAR: nie ustawiono 5x dla TRX-USD (ConnectionError)
+2026-11-09 21:41:22,981 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (ConnectionError)
+2026-11-09 21:41:22,994 ERROR LEWAR: nie ustawiono 5x dla ETC-USD (ConnectionError)
+2026-11-09 21:41:23,008 ERROR LEWAR: nie ustawiono 5x dla UNI-USD (ConnectionError)
+2026-11-09 21:41:23,021 ERROR LEWAR: nie ustawiono 5x dla ATOM-USD (ConnectionError)
+2026-11-09 21:41:23,035 ERROR LEWAR: nie ustawiono 5x dla NEAR-USD (ConnectionError)
+2026-11-09 21:41:23,048 ERROR LEWAR: nie ustawiono 5x dla APT-USD (ConnectionError)
+2026-11-09 21:41:23,061 ERROR LEWAR: nie ustawiono 5x dla FIL-USD (ConnectionError)
+2026-11-09 21:41:23,075 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (ConnectionError)
+2026-11-09 21:41:23,075 WARNING SYGNAŁ: XRP-USD ranga=1 zawiera błąd danych; zlecenie pominięte
+2026-11-09 21:41:23,075 WARNING SYGNAŁ: DOGE-USD ranga=2 zawiera błąd danych; zlecenie pominięte
+2026-11-09 21:41:23,075 WARNING SYGNAŁ: ADA-USD ranga=3 zawiera błąd danych; zlecenie pominięte
+2026-11-09 21:41:23,075 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:46:04,085 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:46:14,568 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:46:17,689 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:46:17,692 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=60.66 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:46:17,692 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:46:17,692 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=36.97 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:46:17,694 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:47:17,698 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:47:27,987 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:47:31,366 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:47:31,368 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:47:31,369 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:47:31,369 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=36.34 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:47:31,370 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:48:31,375 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:48:42,885 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:48:46,264 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:48:46,266 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:48:46,267 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:48:46,267 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=36.46 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:48:46,268 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:49:46,275 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:49:57,790 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:50:01,512 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:50:01,515 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:50:01,515 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:50:01,515 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=37.1 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:50:01,516 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:51:01,523 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:51:13,167 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:51:16,853 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:51:16,856 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:51:16,856 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:51:16,856 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=37.23 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:51:16,857 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:52:16,861 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:52:28,621 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:52:31,811 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:52:31,813 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:52:31,813 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:52:31,813 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=36.46 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:52:31,815 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:53:31,819 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:53:43,164 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:53:47,076 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:53:47,077 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:53:47,078 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:53:47,078 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=37.1 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:53:47,079 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:54:47,086 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:54:57,120 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:55:00,097 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:55:00,099 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:55:00,099 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:55:00,099 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=36.84 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:55:00,100 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:56:00,102 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:56:13,830 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:56:17,605 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:56:17,606 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:56:17,606 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:56:17,606 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=36.97 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:56:17,608 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:57:17,613 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:57:27,837 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:57:30,805 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:57:30,808 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:57:30,808 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:57:30,809 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=37.1 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:57:30,810 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:58:30,817 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:58:41,354 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 21:58:45,778 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 21:58:45,780 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:58:45,780 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 21:58:45,780 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=36.84 kwalifikacja=False; zlecenie pominięte
+2026-11-09 21:58:45,783 INFO CYKL: zakończono; wyników=3.
+2026-11-09 21:59:45,792 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 21:59:57,356 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:00:00,942 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:00:00,944 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:00:00,944 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:00:00,944 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=37.23 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:00:00,945 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:01:00,951 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:01:11,013 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:01:14,588 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:01:14,591 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:01:14,591 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=38.12 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:01:14,591 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:01:14,592 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:02:14,592 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:02:24,969 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:02:29,006 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:02:29,008 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:02:29,008 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=38.38 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:02:29,008 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:02:29,009 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:03:29,011 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:03:40,056 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:03:43,188 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:03:43,191 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:03:43,191 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:03:43,191 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=37.48 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:03:43,193 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:04:43,184 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:04:52,998 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:04:56,127 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:04:56,129 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:04:56,129 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:04:56,129 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=37.35 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:04:56,130 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:05:56,123 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:06:06,583 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:06:10,037 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:06:10,039 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:06:10,040 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:06:10,040 INFO SYGNAŁ: APT-USD ranga=3 sygnał=SPRZEDAJ punkty=37.48 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:06:10,041 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:07:10,044 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:07:19,943 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:07:22,962 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:07:22,965 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:07:22,965 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=38.12 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:07:22,965 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:07:22,967 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:08:22,969 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:08:33,877 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:08:37,253 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:08:37,257 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:08:37,257 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=38.76 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:08:37,257 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:08:37,259 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:09:37,260 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:09:46,850 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:09:50,167 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:09:50,170 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:09:50,170 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.27 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:09:50,170 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:09:50,172 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:10:50,175 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:11:00,520 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:11:03,711 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:11:03,716 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:11:03,716 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.66 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:11:03,717 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:11:03,719 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:12:03,724 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:12:14,475 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:12:17,663 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:12:17,666 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:12:17,667 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:12:17,667 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.03 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:12:17,668 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:13:17,670 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:13:29,743 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:13:33,902 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:13:33,904 ERROR CYKL: ICP-USD ranga=1 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:13:33,904 INFO SYGNAŁ: ETC-USD ranga=2 sygnał=SPRZEDAJ punkty=37.14 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:13:33,905 INFO SYGNAŁ: AVAX-USD ranga=3 sygnał=SPRZEDAJ punkty=36.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:13:33,905 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:14:33,907 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:14:43,172 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:14:46,244 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:14:46,247 ERROR CYKL: ICP-USD ranga=1 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:14:46,247 INFO SYGNAŁ: ETC-USD ranga=2 sygnał=SPRZEDAJ punkty=37.03 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:14:46,247 INFO SYGNAŁ: AVAX-USD ranga=3 sygnał=SPRZEDAJ punkty=36.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:14:46,247 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:15:46,254 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:16:02,121 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:16:05,980 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:16:05,982 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:16:05,982 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:16:05,982 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=36.38 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:16:05,984 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:17:05,986 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:17:19,484 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:17:24,931 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:17:24,934 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:17:24,934 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:17:24,934 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=36.59 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:17:24,936 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:18:24,941 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:18:37,566 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:18:42,912 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:18:42,915 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:18:42,916 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:18:42,916 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=36.48 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:18:42,917 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:19:42,919 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:19:53,846 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:19:57,212 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:19:57,214 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:19:57,215 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:19:57,215 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=36.48 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:19:57,216 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:20:57,221 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:21:10,861 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:21:14,759 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:21:14,762 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:21:14,762 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:21:14,763 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.25 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:21:14,764 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:22:14,769 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:22:25,006 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:22:28,348 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:22:28,351 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:22:28,351 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:22:28,351 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.25 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:22:28,353 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:23:28,363 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:23:39,037 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:23:42,117 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:23:42,120 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:23:42,120 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:23:42,120 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=36.59 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:23:42,122 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:24:42,124 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:24:52,965 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:24:56,152 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:24:56,155 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:24:56,155 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:24:56,155 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.14 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:24:56,157 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:25:56,160 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:26:05,725 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:26:09,392 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:26:09,395 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:26:09,395 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:26:09,395 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.14 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:26:09,397 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:27:09,406 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:27:21,035 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:27:25,029 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:27:25,032 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:27:25,032 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:27:25,032 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.14 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:27:25,034 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:28:25,039 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:28:36,299 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:28:39,985 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:28:39,988 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:28:39,989 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:28:39,989 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.03 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:28:39,991 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:29:39,995 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:29:50,335 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:29:54,021 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:29:54,024 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:29:54,025 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:29:54,025 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=36.16 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:29:54,026 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:30:54,028 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:31:04,678 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:31:08,193 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:31:08,196 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:31:08,196 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.14 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:31:08,196 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:31:08,198 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:32:08,203 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:32:20,039 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:32:23,628 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:32:23,631 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:32:23,632 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.66 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:32:23,632 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:32:23,633 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:33:23,638 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:33:34,285 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:33:37,692 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:33:37,696 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:33:37,696 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.66 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:33:37,696 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:33:37,698 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:34:37,703 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:34:48,934 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:34:53,542 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:34:53,545 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:34:53,545 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=38.5 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:34:53,545 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:34:53,546 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:35:53,552 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:36:03,583 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:36:08,192 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:36:08,194 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:36:08,194 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=38.25 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:36:08,194 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:36:08,196 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:37:08,200 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:37:19,564 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:37:22,721 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:37:22,723 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=61.7 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:37:22,724 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=37.99 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:37:22,724 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:37:22,725 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:38:22,732 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:38:33,186 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:38:36,874 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:38:36,877 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:38:36,877 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.27 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:38:36,878 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:38:36,879 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:39:36,885 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:39:46,914 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:39:50,468 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:39:50,471 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:39:50,471 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.27 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:39:50,471 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:39:50,473 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:40:50,474 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:41:00,826 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:41:03,798 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:41:03,801 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:41:03,801 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:41:03,801 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.46 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:41:03,802 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:42:03,808 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:42:13,526 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:42:16,907 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:42:16,909 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:42:16,910 INFO SYGNAŁ: ETC-USD ranga=2 sygnał=SPRZEDAJ punkty=37.68 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:42:16,910 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:42:16,911 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:43:16,913 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:43:27,126 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:43:30,334 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:43:30,337 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:43:30,337 INFO SYGNAŁ: ETC-USD ranga=2 sygnał=SPRZEDAJ punkty=37.68 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:43:30,338 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:43:30,339 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:44:30,342 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:44:40,662 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:44:43,722 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:44:43,725 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:44:43,725 INFO SYGNAŁ: ETC-USD ranga=2 sygnał=SPRZEDAJ punkty=38.01 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:44:43,725 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:44:43,728 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:45:43,733 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:45:54,633 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:45:58,407 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:45:58,410 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:45:58,410 INFO SYGNAŁ: ETC-USD ranga=2 sygnał=SPRZEDAJ punkty=38.22 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:45:58,410 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:45:58,413 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:46:58,416 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:47:09,590 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:47:13,891 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:47:13,895 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:47:13,895 INFO SYGNAŁ: ETC-USD ranga=2 sygnał=SPRZEDAJ punkty=38.01 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:47:13,895 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:47:13,897 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:48:13,902 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:48:25,467 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:48:29,235 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:48:29,237 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:48:29,238 INFO SYGNAŁ: ETC-USD ranga=2 sygnał=SPRZEDAJ punkty=38.01 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:48:29,238 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:48:29,239 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:49:29,241 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:49:40,425 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:49:44,726 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:49:44,729 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:49:44,729 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.27 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:49:44,729 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.79 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:49:44,731 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:52:49,716 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:53:00,097 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:53:03,495 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:53:03,497 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:53:03,498 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=38.25 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:53:03,498 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:53:03,499 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:54:03,502 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:54:14,784 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:54:18,117 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:54:18,120 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:54:18,120 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=37.99 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:54:18,120 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:54:18,122 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:55:18,124 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:55:29,170 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:55:32,003 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:55:32,004 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:55:32,004 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=38.38 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:55:32,005 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:55:32,006 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:56:32,011 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:56:43,662 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:56:47,152 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:56:47,155 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:56:47,155 INFO SYGNAŁ: APT-USD ranga=2 sygnał=SPRZEDAJ punkty=39.79 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:56:47,155 ERROR CYKL: ICP-USD ranga=3 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:56:47,157 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:57:47,161 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:57:57,389 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:58:01,690 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:58:01,693 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:58:01,693 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:58:01,693 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.46 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:58:01,695 INFO CYKL: zakończono; wyników=3.
+2026-11-09 22:59:01,700 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 22:59:13,699 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)
+2026-11-09 22:59:17,260 ERROR LEWAR: nie ustawiono 5x dla ICP-USD (BinanceAPIException)
+2026-11-09 22:59:17,263 INFO SYGNAŁ: AVAX-USD ranga=1 sygnał=SPRZEDAJ punkty=46.96 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:59:17,264 ERROR CYKL: ICP-USD ranga=2 pominięto, bo nie ustawiono dźwigni 5x
+2026-11-09 22:59:17,264 INFO SYGNAŁ: ETC-USD ranga=3 sygnał=SPRZEDAJ punkty=37.35 kwalifikacja=False; zlecenie pominięte
+2026-11-09 22:59:17,265 INFO CYKL: zakończono; wyników=3.
+2026-11-09 23:00:17,270 INFO CYKL: rozpoczęcie skanu rynku.
+2026-11-09 23:00:28,836 ERROR LEWAR: nie ustawiono 5x dla SHIB-USD (BinanceAPIException)

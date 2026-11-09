@@ -92,6 +92,10 @@ def main() -> int:
         "verification_method": "Mock offline.",
     }
     with (
+        patch(
+            "research_agent.get_testnet_klines",
+            return_value=MockTicker("BTC-USD").history(),
+        ),
         patch("research_agent.yf.Ticker", MockTicker),
         patch.object(ResearchAgent, "_fetch_news", return_value=offline_news),
         patch.object(
@@ -131,9 +135,14 @@ def main() -> int:
         )
 
     assert report["symbol"] == "BTC-USD"
-    assert report["signal"] == "KUP"
-    assert report["entry_price"] > report["stop_loss"]
-    assert report["take_profit"] > report["entry_price"]
+    assert report["signal"] in {"KUP", "SPRZEDAJ"}
+    if report["signal"] == "KUP":
+        assert report["entry_price"] > report["stop_loss"]
+        assert report["take_profit"] > report["entry_price"]
+    else:
+        assert report["stop_loss"] > report["entry_price"]
+        assert report["take_profit"] < report["entry_price"]
+    assert "Zrealizuj cel, gdy cena osiągnie poziom" in report["report_text"]
     assert report["position_size"] > 0
     assert report["rationale"]
     assert 0 <= report["confidence_score_pct"] <= 60

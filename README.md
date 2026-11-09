@@ -14,9 +14,12 @@ Zainstaluj zależności:
 python -m pip install -r requirements.txt
 ```
 
-Ustaw klucz API w zmiennej środowiskowej `GEMINI_API_KEY` (nie zapisuj klucza
-w kodzie ani repozytorium). Opcjonalnie możesz ustawić nazwę modelu przez
-`GEMINI_MODEL`; domyślnie używany jest `gemini-3.8-flash`.
+Ustaw `GEMINI_API_KEY` w środowisku. Dla danych i zleceń demo umieść klucze
+Testnet w `.env` jako `BINANCE_TESTNET_API_KEY` i
+`BINANCE_TESTNET_SECRET_KEY`. Pętla Futures wymaga, aby te klucze miały dostęp
+do USDⓈ-M Futures Testnet; Spot i Futures są różnymi środowiskami kont.
+Nie używaj kluczy produkcyjnych. Opcjonalnie możesz ustawić `GEMINI_MODEL`;
+domyślnie używany jest `gemini-3.8-flash`.
 
 Przykład uruchomienia w macOS/Linux:
 
@@ -25,11 +28,11 @@ export GEMINI_API_KEY="twój-klucz-api"
 python main.py "Przeanalizuj parę BTC/USDT" --capital 10000
 ```
 
-`main.py` kolejno tworzy plan Gemini, pobiera dane Yahoo Finance dla wskazanych
-interwałów, oblicza ryzyko dla obu kierunków i generuje raport. Wartość
-`--capital` podaj w USD — dane cenowe Yahoo Finance dla BTC-USD są denominowane
-w USD. Przy mapowaniu par `*/USDT` na `*-USD` nie jest wykonywana konwersja walut.
-Błędy Gemini i Yahoo Finance HTTP 503 są ponawiane do trzech prób.
+`main.py` kolejno tworzy plan Gemini, pobiera dane z Binance Spot Testnet dla
+krypto lub Yahoo Finance dla pozostałych aktywów, oblicza ryzyko dla obu
+kierunków i generuje raport. Wartość `--capital` podaj w USD; pary Testnet są
+kwotowane w USDT i nie jest wykonywana konwersja walut. Błędy Gemini HTTP 503
+są ponawiane do trzech prób.
 Wywołania Gemini w całej aplikacji korzystają ze wspólnego retry w
 `GeminiClient`, z wykładniczym opóźnieniem; dotyczy ono wyłącznie HTTP 503.
 `tenacity` jest zadeklarowane w `requirements.txt`, więc przy przygotowaniu
@@ -45,9 +48,10 @@ Dashboard nie uruchamia skanu automatycznie. Na głównym ekranie można wybrać
 „Wszystko”, „Tylko Akcje (Revolut)” lub „Tylko Kryptowaluty (Revolut)”.
 Radio pozwala uruchomić tryb na żywo albo „Tryb historyczny (Backtest w wybranym
 momencie)”. W trybie historycznym użytkownik wybiera datę, godzinę i minutę w
-strefie Europe/Warsaw. ResearchAgent pobiera świece Yahoo Finance z zakresem
-kończącym się w tej chwili, odrzuca niedokończone świece źródłowe i oblicza
-wskaźniki oraz punktację wyłącznie na danych dostępnych do wybranego momentu.
+strefie Europe/Warsaw. ResearchAgent pobiera świece z Binance Spot Testnet dla
+krypto i Yahoo Finance dla akcji, odrzuca niedokończone świece źródłowe i
+oblicza wskaźniki oraz punktację wyłącznie na danych dostępnych do wybranego
+momentu.
 Yahoo Finance ogranicza historię intraday (typowo ok. 60 dni); starsze daty
 mogą nie zwrócić danych. Brak danych jest pokazywany jako błąd, nie mock.
 Historyczny skan wyłącza bieżące newsy, fundamenty, arkusze zleceń i kalendarze,
@@ -57,13 +61,15 @@ Na górze ekranu można niezależnie wybrać kategorię horyzontu dla trybu live
 historycznego. „Kilkudniowe” używa świec dziennych z pięcioletniego źródła,
 zachowując do 1000 świec do obliczeń, aby SMA50/SMA200 oraz porównanie wolumenu
 5/20 sesji miały wystarczającą historię. „Krótkoterminowe / Szybkie” używa
-ukończonych świec 15m
-(Yahoo Finance z `prepost=True`, jeśli dostawca udostępnia dane przed/po sesji)
+ukończonych świec 15m (Binance Spot Testnet dla krypto; Yahoo Finance dla
+akcji, z `prepost=True`, jeśli dostawca udostępnia dane przed/po sesji)
 w obu trybach. Skan przygotowawczy dla akcji USA rozpoczyna się od 14:00 czasu
 polskiego; regularne otwarcie rynku przypada zwykle o 15:30 czasu CET, a w
 tygodniach rozbieżności zmiany czasu między Europą i USA o 14:30 czasu
 polskiego.
-Obie kategorie używają skali 0–150, a sygnał KUP wymaga co najmniej 110 pkt.
+Obie kategorie używają skali 0–150. Kierunek KUP/SPRZEDAJ wynika z trendu;
+próg 110 pkt i filtry są osobną kwalifikacją do rekomendacji KUP, a wynik
+poniżej progu nie zamienia sygnału kierunkowego w „CZEKAJ”.
 Model swing obejmuje: strukturę SMA (25), RSI/MACD (20), wolumen 5/20 sesji
 (15), wsparcie (15), konsensus analityków Yahoo Finance (25),
 makro/kalendarz/sezonowość/reżim rynku (25) oraz R/R i plan ATR trailing stop
@@ -74,9 +80,9 @@ MACD (20), R/R (15), analityków i zweryfikowany news buzz (20), timing/makro
 samej pory z maksymalnie 20 wcześniejszych sesji; poniżej 1,0 zeruje wynik.
 Sygnał krótkoterminowy wymaga ponadto R/R co najmniej 1:2.
 
-W trybie live etap techniczny ocenia cały ranking, a dodatkowe źródła sieciowe
-są pobierane wyłącznie dla maksymalnie 10 najlepszych kandydatów powyżej
-minimalnego wyniku etapu pierwszego. Konsensus pochodzi z bieżących
+Wstępny scoring techniczny wyznacza ranking całej watchlisty. Dodatkowe źródła
+sieciowe oraz pełne szczegóły i wykresy są pobierane/prezentowane wyłącznie dla
+trzech najwyżej ocenionych aktywów. Konsensus pochodzi z bieżących
 rekomendacji analityków Yahoo Finance; sentyment newsów uwzględnia tylko
 nagłówki potwierdzone przez dwa zaufane źródła. Kalendarz makro korzysta z
 publicznego feedu Forex Factory, a terminy raportów spółek z kalendarza Yahoo
@@ -92,16 +98,16 @@ Stop-Loss początkowy wynosi 1,8×ATR (1.8×ATR). Plan trailingu aktywuje się p
 wzroście o 1×ATR i podąża 1,8×ATR za maksimum od wejścia; szybki model dodaje zamknięcie
 najpóźniej na koniec sesji. W obu kategoriach kafelek **Potencjalny zysk**
 pokazuje szacowaną stopę zwrotu netto od ceny wejścia/Trigger do Take-Profit,
-po uwzględnieniu modelowanych opłat za kupno i sprzedaż. Dashboard jedynie
-wylicza i wyświetla te poziomy — nie monitoruje otwartej pozycji w tle ani nie
-składa zleceń.
+po uwzględnieniu modelowanych opłat za kupno i sprzedaż. Dashboard nie monitoruje otwartych pozycji. Dla kwalifikujących się kryptowalut
+w Top 3 w trybie na żywo udostępnia osobne przyciski ręcznego market BUY za
+50 USDT na Binance Spot Testnet. Sygnał SPRZEDAJ pozostaje informacją i nie
+składa zlecenia.
 Wyniki są heurystyczne, nie są skalibrowanym prawdopodobieństwem ani gwarancją.
 Skan używa szerokiej, konfigurowanej w kodzie puli popularnych akcji z USA i
 Europy oraz 21 głównych kryptowalut (m.in. BTC, ETH, SOL, XRP, ADA i DOGE),
-pobierając OHLCV przez Yahoo Finance na interwale zależnym od kategorii.
-Lista tickerów jest
-watchlistą Yahoo Finance, nie oficjalnym katalogiem Revolut: dostępność
-instrumentów w Revolut zależy od kraju i konta użytkownika.
+pobierając OHLCV z Binance Spot Testnet dla kryptowalut oraz Yahoo Finance dla
+akcji. Lista tickerów jest watchlistą, nie oficjalnym katalogiem Revolut:
+dostępność instrumentów w Revolut zależy od kraju i konta użytkownika.
 Rekomendacja w wybranej kategorii wymaga wyniku co najmniej 110/150 i
 przejścia dodatkowych warunków kwalifikacyjnych. Karty i szczegółowy widok
 pokazują punktację każdego filtra i uzasadnienie. Dane rynkowe
@@ -111,11 +117,43 @@ W modelu ustawiono minimum 20 bps round trip, czyli 0,2% (0.2%) łącznie: co na
 Revoluta i nie obejmuje potencjalnego dodatkowego spreadu. Po skanie dashboard pokazuje
 pełną listę rankingową wszystkich zeskanowanych aktywów, wraz z tickerami
 z błędami pobierania oznaczonymi jako brak wyniku. Ranking jest sortowany
-malejąco po punktacji. Wybranie tickera pokazuje cenę w walucie Yahoo Finance,
+malejąco po punktacji. Wybranie tickera pokazuje cenę z właściwego źródła
+(Binance Testnet dla krypto, Yahoo Finance dla akcji),
 punktację wybranej kategorii oraz scenariuszowe poziomy Trigger/TP/SL.
-Cena wejścia i poziomy transakcji są scenariuszem, nie zleceniem. Yahoo Finance
-nie gwarantuje notowań
-bez opóźnień; źródło może udostępniać dane opóźnione w zależności od giełdy.
+Cena wejścia i poziomy transakcji są scenariuszem; ręczne przyciski BUY
+wysyłają osobne zlecenia wyłącznie na Binance Testnet. Yahoo Finance nie
+gwarantuje notowań bez opóźnień; źródło może udostępniać dane opóźnione
+w zależności od giełdy.
+
+Na górze dashboardu saldo Futures Testnet, niezrealizowany PnL oraz
+zrealizowany PnL z ostatnich 30 dni są odświeżane bez cache przy każdym
+renderowaniu. Sekcja wymaga uprawnień Futures Testnet dla skonfigurowanych
+kluczy.
+
+## Autonomiczna pętla Futures Testnet
+
+Uruchom osobny proces, aby co najmniej co 60 sekund skanować 21 kryptowalut
+na świecach USDⓈ-M Futures Testnet i automatycznie składać LONG market BUY
+wyłącznie dla kwalifikującego się sygnału KUP w Top 3:
+
+```bash
+python bot_loop.py
+```
+
+Wielkość pozycji jest liczona z margin 10 USDT i dźwignią 5x (wartość
+nominalna około 50 USDT, po zaokrągleniu do reguł giełdy). Bot ustawia 5x
+dźwignię dla analizowanych aktywów krypto. Sprawdza otwarte pozycje i nie
+dokłada zlecenia do już otwartej pozycji danego symbolu, także po restarcie.
+Łączny limit to maksymalnie trzy otwarte pozycje.
+Sygnały SELL i pozycje wymagające zamknięcia są tylko logowane; bot **nie**
+ustawia stop-loss ani take-profit i **nie** zamyka automatycznie pozycji.
+Monitoruj konto oraz zamykaj pozycje ręcznie. Przed startem upewnij się, że
+API Testnet działa i saldo Futures demo jest dostępne.
+
+Logi zdarzeń i odpowiedzi zleceń (bez kluczy API) zapisują się rotacyjnie do
+`trading.log`. `python bot_loop.py --once` wykona jeden cykl i może wysłać
+zlecenie Testnet; `--interval 60` ustawia przerwę po każdym cyklu w sekundach.
+Zatrzymanie pętli: `Ctrl+C`.
 W przypadku problemów z pobraniem danych dashboard pokazuje wyraźny komunikat
 błędu i nie zastępuje notowań danymi syntetycznymi.
 Brak danych tickerowych jest oznaczany jako błąd i nie jest zastępowany
@@ -142,20 +180,23 @@ W razie błędu 503 skrypt ponawia próbę do trzech razy z rosnącym opóźnien
 
 ## Dane rynkowe
 
-`research_agent.py` pobiera świece OHLCV z Yahoo Finance (domyślnie BTC-USD)
-i oblicza RSI(14), MACD(12, 26, 9) oraz ATR(14) przy użyciu
-`pandas-ta-classic` (API zgodne z pandas-ta), a także ADX(14). Do działania nie wymaga klucza API:
+`research_agent.py` pobiera świece OHLCV z Binance Spot Testnet dla kryptowalut
+(np. BTC-USD → BTCUSDT) oraz z Yahoo Finance dla akcji. Oblicza RSI(14),
+MACD(12, 26, 9), ATR(14) i ADX(14) przy użyciu `pandas-ta-classic`. Dla krypto
+wymaga kluczy Testnet z `.env`; klucz Gemini nie jest potrzebny:
 
 ```bash
 python research_agent.py --symbol BTC-USD --timeframe 1d --limit 100
 ```
 
 Wyniki są wypisywane jako JSON ze świecami OHLCV, najnowszą ceną, RSI, MACD,
-ATR, ADX i wstępnym sygnałem KUP/SPRZEDAJ/CZEKAJ; ADX < 20 wstrzymuje sygnał
-kierunkowy. Filtr płynności porównuje ostatnią ukończoną sesję z 20 poprzednimi
-sesjami i odrzuca relację wolumenu poniżej 0,5. Dla par `*/USDT` symbol Yahoo
-Finance jest mapowany na `*-USD`; wartości Yahoo pozostają denominowane w USD.
-Jeśli Yahoo Finance nie zwróci rzeczywistych danych, agent zgłasza błąd zamiast
+ATR, ADX i wstępnym kierunkiem KUP/SPRZEDAJ. Niski wynik lub niespełnienie
+filtrów blokuje kwalifikację do rekomendacji, ale nie ukrywa kierunku trendu.
+Filtr płynności porównuje ostatnią ukończoną sesję z 20 poprzednimi
+sesjami i odrzuca relację wolumenu poniżej 0,5. Para Binance `*/USDT` jest
+normalizowana wewnętrznie do symbolu `*-USD`; wartości cenowe pozostają
+kwotowane w USDT.
+Jeśli wybrane źródło nie zwróci rzeczywistych danych, agent zgłasza błąd zamiast
 zwracać dane syntetyczne. Mocki można jawnie włączyć wyłącznie w kodzie
 testowym przez `ResearchAgent(allow_mock_data=True)`; wyniki są oznaczone
 `is_mock: true` i nie mogą tworzyć rekomendacji.
@@ -231,7 +272,8 @@ writer = WriterAgent(GeminiClient.from_env())
 message = writer.create_trade_message(research_data, risk_data)
 ```
 
-Wynik zawiera `signal` (KUP/SPRZEDAJ/CZEKAJ), `entry_price`, `stop_loss`,
+Wynik zawiera kierunkowy `signal` (KUP/SPRZEDAJ; syntetyczne dane testowe
+pozostają zablokowane), `entry_price`, `stop_loss`,
 `take_profit`, `position_size`, `rationale` i czytelny raport `report_text`
 po polsku, gotowe do serializacji do JSON. Raport podsumowuje również RSI,
 MACD, ATR, interwał oraz szacowane ryzyko; przy danych syntetycznych zawiera

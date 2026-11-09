@@ -1,4 +1,7 @@
 google-genai
+python-binance
+python-dotenv
+requests
 numpy
 pandas
 yfinance

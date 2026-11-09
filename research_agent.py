@@ -1,4 +1,4 @@
-"""Fetch Yahoo Finance OHLCV data and calculate pandas-ta indicators."""
+"""Fetch market OHLCV data and calculate pandas-ta indicators."""
 
 import argparse
 import concurrent.futures
@@ -18,7 +18,16 @@ from typing import Any, Callable
 import numpy as np
 import pandas as pd
 import pandas_ta_classic as ta
+from requests.exceptions import RequestException
 import yfinance as yf
+from binance.exceptions import BinanceAPIException, BinanceRequestException
+
+from binance_testnet import (
+    get_futures_testnet_klines,
+    get_testnet_klines,
+    get_testnet_order_book,
+    to_binance_symbol,
+)
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -100,11 +109,13 @@ class ResearchAgent:
         timeout: float = 4.0,
         *,
         allow_mock_data: bool = False,
+        binance_futures: bool = False,
     ) -> None:
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("Timeout musi być skończoną wartością większą od zera.")
         self.timeout = min(timeout, 4.0)
         self.allow_mock_data = allow_mock_data
+        self.binance_futures = binance_futures
         self._fundamentals_cache: dict[str, dict[str, Any]] = {}
         self._news_cache: dict[str, dict[str, Any]] = {}
         self._analyst_cache: dict[str, dict[str, Any]] = {}
@@ -125,7 +136,7 @@ class ResearchAgent:
         """Return OHLCV, indicators, and optionally slower qualitative inputs."""
         ticker_symbol = self._normalize_symbol(symbol)
         if timeframe not in self.INTERVALS:
-            raise ValueError(f"Nieobsługiwany interwał yfinance: {timeframe}")
+            raise ValueError(f"Nieobsługiwany interwał: {timeframe}")
         if not 35 <= limit <= 10_000:
             raise ValueError("Liczba świec musi mieścić się w zakresie 35–10000.")
         if (
@@ -151,44 +162,84 @@ class ResearchAgent:
                 raise ValueError("as_of musi zawierać informację o strefie czasowej.")
             snapshot = snapshot.tz_convert("UTC")
         fallback_reason: str | None = None
+        is_binance_crypto = ticker_symbol.endswith("-USD")
+        source_name = (
+            "Binance USD-M Futures Testnet"
+            if is_binance_crypto and self.binance_futures
+            else "Binance Spot Testnet"
+            if is_binance_crypto
+            else "Yahoo Finance"
+        )
         try:
-            ticker = yf.Ticker(ticker_symbol)
-            if snapshot is None:
-                period = (
-                    "60d"
-                    if source_interval.endswith(("m", "h"))
-                    else "5y"
-                    if source_interval == "1d"
-                    else "max"
+            if is_binance_crypto:
+                binance_interval = {
+                    "1wk": "1w",
+                    "1mo": "1M",
+                }.get(source_interval, source_interval)
+                resample_multiplier = {
+                    "3min": 3,
+                    "2h": 2,
+                    "4h": 4,
+                    "6h": 6,
+                    "8h": 8,
+                    "12h": 12,
+                    "3D": 3,
+                }.get(resample_rule, 1)
+                source_limit = (
+                    min(10_000, limit * resample_multiplier + resample_multiplier)
+                    if resample_rule is not None
+                    else limit
                 )
-                history = ticker.history(
-                    period=period,
-                    interval=source_interval,
-                    auto_adjust=False,
-                    actions=False,
-                    prepost=include_extended_hours,
+                get_klines = (
+                    get_futures_testnet_klines
+                    if self.binance_futures
+                    else get_testnet_klines
+                )
+                history = get_klines(
+                    ticker_symbol,
+                    binance_interval,
+                    source_limit,
+                    end_time=snapshot.to_pydatetime() if snapshot is not None else None,
                     timeout=self.timeout,
                 )
             else:
-                lookback = (
-                    timedelta(days=59)
-                    if source_interval.endswith(("m", "h"))
-                    else timedelta(days=365 * 5 + 2)
-                    if source_interval == "1d"
-                    else timedelta(days=365 * 10)
-                )
-                history = ticker.history(
-                    start=(snapshot - lookback).to_pydatetime(),
-                    end=(snapshot + timedelta(seconds=1)).to_pydatetime(),
-                    interval=source_interval,
-                    auto_adjust=False,
-                    actions=False,
-                    prepost=include_extended_hours,
-                    timeout=self.timeout,
-                )
+                ticker = yf.Ticker(ticker_symbol)
+                if snapshot is None:
+                    period = (
+                        "60d"
+                        if source_interval.endswith(("m", "h"))
+                        else "5y"
+                        if source_interval == "1d"
+                        else "max"
+                    )
+                    history = ticker.history(
+                        period=period,
+                        interval=source_interval,
+                        auto_adjust=False,
+                        actions=False,
+                        prepost=include_extended_hours,
+                        timeout=self.timeout,
+                    )
+                else:
+                    lookback = (
+                        timedelta(days=59)
+                        if source_interval.endswith(("m", "h"))
+                        else timedelta(days=365 * 5 + 2)
+                        if source_interval == "1d"
+                        else timedelta(days=365 * 10)
+                    )
+                    history = ticker.history(
+                        start=(snapshot - lookback).to_pydatetime(),
+                        end=(snapshot + timedelta(seconds=1)).to_pydatetime(),
+                        interval=source_interval,
+                        auto_adjust=False,
+                        actions=False,
+                        prepost=include_extended_hours,
+                        timeout=self.timeout,
+                    )
             if not isinstance(history, pd.DataFrame) or history.empty:
                 raise RuntimeError(
-                    f"yfinance nie zwróciło danych dla {ticker_symbol} "
+                    f"{source_name} nie zwrócił danych dla {ticker_symbol} "
                     f"(interwał {source_interval})."
                 )
             frame = self._prepare_history(history)
@@ -209,7 +260,7 @@ class ResearchAgent:
                 frame = self._resample(frame, resample_rule)
             if len(frame) < 35:
                 raise RuntimeError(
-                    f"yfinance zwróciło tylko {len(frame)} świec dla {ticker_symbol} "
+                    f"{source_name} zwrócił tylko {len(frame)} świec dla {ticker_symbol} "
                     f"({timeframe}); potrzeba co najmniej 35."
                 )
         except Exception as error:
@@ -220,7 +271,7 @@ class ResearchAgent:
             )
             if not use_mock_data:
                 raise RuntimeError(
-                    f"Nie udało się pobrać rzeczywistych danych Yahoo Finance "
+                    f"Nie udało się pobrać rzeczywistych danych {source_name} "
                     f"dla {ticker_symbol} ({timeframe}): "
                     f"{type(error).__name__}: {error}"
                 ) from error
@@ -229,9 +280,10 @@ class ResearchAgent:
 
         if fallback_reason is not None:
             _LOGGER.warning(
-                "Nie udało się pobrać danych Yahoo Finance (%s); "
+                "Nie udało się pobrać danych %s (%s); "
                 "używam syntetycznych danych testowych dla %s. "
                 "Nie są to aktualne notowania.",
+                source_name,
                 fallback_reason,
                 ticker_symbol,
             )
@@ -345,7 +397,7 @@ class ResearchAgent:
             indicators["macd"],
             indicators["macd_signal"],
         )
-        signal = "CZEKAJ" if indicators["adx_14"] < 20 else momentum_signal
+        signal = momentum_signal
         broker_inputs = self._build_broker_inputs(
             frame,
             latest,
@@ -364,12 +416,26 @@ class ResearchAgent:
 
         return {
             "exchange": (
-                "Synthetic mock data" if fallback_reason is not None else "Yahoo Finance"
+                "Synthetic mock data"
+                if fallback_reason is not None
+                else source_name
+                if is_binance_crypto
+                else "Yahoo Finance"
             ),
             "symbol": ticker_symbol,
             "timeframe": timeframe,
             "source_interval": source_interval,
-            "data_source": "mock" if fallback_reason is not None else "yfinance",
+            "data_source": (
+                "mock"
+                if fallback_reason is not None
+                else (
+                    "binance_futures_testnet"
+                    if self.binance_futures
+                    else "binance_testnet"
+                )
+                if is_binance_crypto
+                else "yfinance"
+            ),
             "is_mock": fallback_reason is not None,
             "fallback_reason": fallback_reason,
             "timestamp": self._serialize_timestamp(latest_timestamp),
@@ -381,10 +447,12 @@ class ResearchAgent:
             "price": float(latest["Close"]),
             "indicators": indicators,
             "signal": signal,
-            "signal_basis": (
-                "ADX(14) < 20: filtr reżimu wstrzymał sygnał kierunkowy."
+            "signal_basis": self._signal_basis(signal)
+            + (
+                " ADX(14) < 20 oznacza słaby trend i obniża kwalifikację, "
+                "ale nie usuwa kierunkowej etykiety."
                 if indicators["adx_14"] < 20
-                else self._signal_basis(signal)
+                else ""
             ),
             "fundamentals": fundamentals,
             "news": news,
@@ -830,7 +898,7 @@ class ResearchAgent:
         current_price: float,
         round_trip_cost_bps: float = 40.0,
     ) -> dict[str, Any]:
-        base, separator, quote = symbol.partition("-")
+        _, separator, quote = symbol.partition("-")
         if not separator or quote != "USD":
             return {
                 "status": "unavailable",
@@ -849,19 +917,26 @@ class ResearchAgent:
                 "(10 bps przy zakupie i 10 bps przy sprzedaży) "
                 "i być niższy niż 10 000 bps."
             )
-        binance_symbol = f"{base}USDT"
-        url = (
-            "https://api.binance.com/api/v3/depth?"
-            + urllib.parse.urlencode({"symbol": binance_symbol, "limit": 1000})
-        )
-        request = urllib.request.Request(
-            url,
-            headers={"User-Agent": "MAFSE read-only market research/1.0"},
-        )
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                depth = json.loads(response.read())
-        except (OSError, ValueError, urllib.error.URLError) as error:
+            depth = get_testnet_order_book(
+                symbol,
+                limit=1000,
+                timeout=self.timeout,
+                futures=self.binance_futures,
+            )
+        except (
+            BinanceAPIException,
+            BinanceRequestException,
+            RequestException,
+            OSError,
+            ValueError,
+            RuntimeError,
+        ) as error:
+            _LOGGER.warning(
+                "Nie udało się pobrać arkusza Binance Testnet dla %s: %s",
+                symbol,
+                error,
+            )
             return {
                 "status": "unavailable",
                 "reason": f"{type(error).__name__}: {error}",
@@ -937,8 +1012,12 @@ class ResearchAgent:
             return {"status": "unavailable", "reason": "Nieprawidłowe wartości order book."}
         return {
             "status": "available",
-            "venue": "Binance Spot",
-            "symbol": binance_symbol,
+            "venue": (
+                "Binance USD-M Futures Testnet"
+                if self.binance_futures
+                else "Binance Spot Testnet"
+            ),
+            "symbol": to_binance_symbol(symbol),
             "ask_notional": ask_notional,
             "bid_notional": bid_notional,
             "target_price": target_price,
@@ -956,9 +1035,8 @@ class ResearchAgent:
                 "Notional ofert sprzedaży przed celem brutto pokrywającym "
                 "cel netto +4,5% po uwzględnieniu szacowanego kosztu "
                 "round trip, zestawiony z "
-                "notionalem bidów w pasie ±4,5%; migawka Binance Spot nie "
-                "obejmuje arkusza Yahoo Finance ani Revoluta. Cena referencyjna "
-                "pochodzi z Yahoo w USD, a arkusz Binance jest kwotowany w USDT."
+                "notionalem bidów w pasie ±4,5%; dane pochodzą z migawki "
+                "Binance Spot Testnet w USDT."
             ),
         }
 
@@ -1633,7 +1711,7 @@ class ResearchAgent:
                 quote = "USD"
             normalized = f"{base}-{quote}"
         if not normalized or any(char.isspace() for char in normalized):
-            raise ValueError("Nieprawidłowy symbol yfinance.")
+            raise ValueError("Nieprawidłowy symbol.")
         return normalized
 
     @staticmethod
@@ -1646,7 +1724,7 @@ class ResearchAgent:
         missing = [column for column in required if column not in history.columns]
         if missing:
             raise RuntimeError(
-                "Dane yfinance nie zawierają wymaganych kolumn OHLCV: "
+                "Dane rynkowe nie zawierają wymaganych kolumn OHLCV: "
                 + ", ".join(missing)
             )
 
@@ -1656,7 +1734,7 @@ class ResearchAgent:
         frame = frame.dropna(subset=("Open", "High", "Low", "Close"))
         frame = frame[~frame.index.duplicated(keep="last")].sort_index()
         if frame.empty:
-            raise RuntimeError("Brak poprawnych świec OHLCV w danych yfinance.")
+            raise RuntimeError("Brak poprawnych świec OHLCV w danych rynkowych.")
         return frame
 
     @staticmethod
@@ -1686,19 +1764,19 @@ class ResearchAgent:
 
     @staticmethod
     def _preliminary_signal(rsi: float, macd: float, macd_signal: float) -> str:
-        if macd > macd_signal and 50 <= rsi < 70:
+        if macd > macd_signal:
             return "KUP"
-        if macd < macd_signal and 30 < rsi <= 50:
+        if macd < macd_signal:
             return "SPRZEDAJ"
-        return "CZEKAJ"
+        return "KUP" if rsi >= 50 else "SPRZEDAJ"
 
     @staticmethod
     def _signal_basis(signal: str) -> str:
         if signal == "KUP":
             return "MACD powyżej linii sygnału, RSI w przedziale 50–70."
         if signal == "SPRZEDAJ":
-            return "MACD poniżej linii sygnału, RSI w przedziale 30–50."
-        return "Wskaźniki nie spełniają jednocześnie warunków sygnału KUP ani SPRZEDAJ."
+            return "Kierunek spadkowy: MACD poniżej linii sygnału."
+        return "Kierunek wzrostowy: MACD powyżej linii sygnału."
 
     @staticmethod
     def _serialize_timestamp(timestamp: Any) -> str:
@@ -1729,7 +1807,7 @@ class ResearchAgent:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Pobierz świece OHLCV yfinance i oblicz RSI, MACD oraz ATR."
+        description="Pobierz świece OHLCV i oblicz RSI, MACD oraz ATR."
     )
     parser.add_argument("--symbol", default="BTC-USD", help="Symbol, np. BTC-USD.")
     parser.add_argument(
